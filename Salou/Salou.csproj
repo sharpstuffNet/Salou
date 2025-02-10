@@ -8,7 +8,7 @@
     <RootNamespace>SalouWS4Sql</RootNamespace>
     <AssemblyName>net.sharpstuff.salou.ws4sql</AssemblyName>
     <Company>sharpstuff.net</Company>
-    <Description>inject a WebSocket into a SQLServer Connection</Description>
+    <Description>use a WebSocket for a SQLServer Connection</Description>
     <Copyright>horstsstuff@sharpstuff.net</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <IncludeSymbols>True</IncludeSymbols>
