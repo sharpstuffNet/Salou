@@ -1,7 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>preview</LangVersion>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>SalouWS4Sql</RootNamespace>
@@ -13,6 +14,10 @@
     <IncludeSymbols>True</IncludeSymbols>
     <PackageReadmeFile>../ReadMe.md</PackageReadmeFile>
     <PackageProjectUrl>https://github.com/horstsstuff/Salou</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/horstsstuff/Salou</RepositoryUrl>
+    <PackageId>net.sharpstuff.salou.ws4sql</PackageId>
+    <Version>1.0.1</Version>
+    <Authors>horstsstuff@sharpstuff.net</Authors>
   </PropertyGroup>
 
   <ItemGroup>

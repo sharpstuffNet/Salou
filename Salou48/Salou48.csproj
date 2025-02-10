@@ -24,6 +24,11 @@
     <IncludeSymbols>True</IncludeSymbols>
     <PackageReadmeFile>../ReadMe.md</PackageReadmeFile>
     <PackageProjectUrl>https://github.com/horstsstuff/Salou</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/horstsstuff/Salou</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/horstsstuff/Salou</RepositoryUrl>
+    <PackageId>net.sharpstuff.salou.ws4sql</PackageId>
+    <Version>1.0.1</Version>
+    <Authors>horstsstuff@sharpstuff.net</Authors>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
