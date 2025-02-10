@@ -100,7 +100,7 @@ namespace SalouServer
             {
                 var ws = await context.WebSockets.AcceptWebSocketAsync();
 #pragma warning disable CS8602 // Possible null reference argument. (Checked in if)
-                await __salouServer.AcceptWebSocketRequest(ws,context);
+                await __salouServer.HandleWebSocketRequest(ws,context);
 #pragma warning restore CS8602 // Possible null reference argument.
             }
             else

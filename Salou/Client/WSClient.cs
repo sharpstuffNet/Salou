@@ -75,10 +75,11 @@ namespace SalouWS4Sql.Client
         {
             if (_webSocket.State != WebSocketState.Open)
             {
-                DOASync(async () =>
+                //var ct=new CancellationTokenSource(120).Token;   
+                DOASyncSerialized(async () =>
                 {
                     await _webSocket.ConnectAsync(_uri, _ct);
-                }).Wait(_timeout);
+                });//Timeout was not a good idea here - blocks inner semaphore even in finally 
 
                 SalouLog.LoggerFkt(LogLevel.Information, () => $"WSClient opened");
             }
@@ -92,10 +93,10 @@ namespace SalouWS4Sql.Client
         {
             if (_webSocket.State == WebSocketState.Open)
             {
-                DOASync(async () =>
+                DOASyncSerialized(async () =>
                 {
                     await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", _ct);
-                }).Wait();
+                });
 
                 SalouLog.LoggerFkt(LogLevel.Information, () => $"WSClient closed");
             }
@@ -105,12 +106,13 @@ namespace SalouWS4Sql.Client
         /// </summary>
         /// <param name="act"></param>
         /// <returns></returns>
-        private async Task DOASync(Func<Task> act)
+        private void DOASyncSerialized(Func<Task> act)
         {
-            await _semaphore.WaitAsync();
+            _semaphore.Wait();
             try
             {
-                await act();
+                Salou48.Helpers.AsyncHelper.RunSync(act);
+                //act().Wait();
             }
             catch (Exception ex)
             {
@@ -127,10 +129,10 @@ namespace SalouWS4Sql.Client
         public void Dispose()
         {
             if (_webSocket.State == WebSocketState.Open)
-                DOASync(async () =>
+                DOASyncSerialized(async () =>
                 {
                     await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", _ct);
-                }).Wait();
+                });
 
             _webSocket.Dispose();
 

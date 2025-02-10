@@ -35,9 +35,7 @@ namespace SalouWS4Sql.Client
         /// <exception cref="SalouException"></exception>
         internal T? Send<T>(SalouRequestType reqType, WsCallID? sid = null, params object[] para)
         {
-            var x = SendAsync(reqType, sid ?? new WsCallID(), para);
-            x.Wait();
-            var rt = x.Result;
+            var rt = SendIntern(reqType, sid ?? new WsCallID(), para);
             SalouLog.LoggerFkt(LogLevel.Trace, () => $"WSClient Result {rt}");
             if (typeof(T) == typeof(object) || rt.Item2 == typeof(T))
                 return rt.Item1 == null ? default(T) : (T)rt.Item1;
@@ -53,7 +51,7 @@ namespace SalouWS4Sql.Client
         /// <param name="para">paramters</param>
         internal void Send(SalouRequestType reqType, WsCallID? sid = null, params object[] para)
         {
-            SendAsync(reqType, sid ?? new WsCallID(), para).Wait();
+            SendIntern(reqType, sid ?? new WsCallID(), para);
         }
 
         /// <summary>
@@ -65,7 +63,7 @@ namespace SalouWS4Sql.Client
         /// <returns>return value / type</returns>
         /// <exception cref="SalouException"></exception>
         /// <exception cref="SalouConClosedException"></exception>
-        private async Task<(object?, Type)> SendAsync(SalouRequestType reqToDo, WsCallID sid, params object[] para)
+        private (object?, Type) SendIntern(SalouRequestType reqToDo, WsCallID sid, params object[] para)
         {
             byte[] baOut;
             var baIn= Array.Empty<byte>();
@@ -95,7 +93,7 @@ namespace SalouWS4Sql.Client
             SalouReturnType rty = SalouReturnType.Nothing;
 
             //Only 1 request at a time
-            await DOASync(async () =>
+            DOASyncSerialized(async () =>
             {
                 //Send
                 await _webSocket.SendAsync(baOut, WebSocketMessageType.Binary, true, CancellationToken.None);

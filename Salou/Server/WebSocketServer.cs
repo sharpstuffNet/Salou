@@ -59,7 +59,7 @@ namespace SalouWS4Sql.Server
             SalouLog.Logger = logger;
 
             //start the cleanup Timer
-            _ti = new Timer(TiCb, null, 1000, 1000);
+            _ti = new Timer(TiCb, null, 30000, 30000);
 
             SalouLog.LoggerFkt(LogLevel.Information, () => "Salou Server started");
         }
@@ -92,7 +92,7 @@ namespace SalouWS4Sql.Server
         /// <param name="ws">WebSocket</param>
         /// <param name="ctx">HttpContext</param>
         /// <returns>Task</returns>
-        public async Task AcceptWebSocketRequest(WebSocket ws, HttpContext ctx)
+        public async Task HandleWebSocketRequest(WebSocket ws, HttpContext ctx)
         {
             SalouLog.LoggerFkt(LogLevel.Information, () => "AcceptWebSocketRequest");
 

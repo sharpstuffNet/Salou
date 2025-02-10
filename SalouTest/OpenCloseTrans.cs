@@ -20,7 +20,7 @@ namespace SalouTest
         [TestInitialize]
         public void TestInit()
         {
-            _con = new SalouConnection(new Uri("ws://localhost:5249/ws"), "Test", 120, null);
+            _con = new SalouConnection(new Uri("ws://localhost:5249/ws"), "Test", 120000, null);
         }
 
         /// <summary>
