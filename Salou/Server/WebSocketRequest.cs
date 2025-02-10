@@ -1,0 +1,686 @@
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
+using SalouWS4Sql.Client;
+using SalouWS4Sql.Helpers;
+using System;
+using System.Buffers.Binary;
+using System.Collections.Concurrent;
+using System.Data;
+using System.Data.Common;
+using System.IO;
+using System.Net.WebSockets;
+using System.Reflection.PortableExecutable;
+using System.Security.Cryptography;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Linq;
+
+namespace SalouWS4Sql.Server
+{
+    /// <summary>
+    /// WebSocket Request handler
+    /// </summary>
+    internal class WebSocketRequest : IDisposable
+    {
+        /// <summary>
+        /// WebSocket
+        /// </summary>
+        WebSocket _ws;
+        /// <summary>
+        /// Logger
+        /// </summary>
+        ILogger? _logger;
+        /// <summary>
+        /// the WebSocket Server
+        /// </summary>
+        WebSocketServer _wss;
+        /// <summary>
+        /// HttpContext
+        /// </summary>
+        HttpContext _ctx;
+        /// <summary>
+        /// All DataReaders
+        /// </summary>
+        SimpleConcurrentDic<int, DataReader> _allRDR = new();
+        /// <summary>
+        /// All Connections
+        /// </summary>
+        SimpleConcurrentDic<int, DbConnection> _allCons = new();
+        /// <summary>
+        /// All Commands
+        /// </summary>
+        SimpleConcurrentDic<int, DbCommand> _allCmd = new();
+        /// <summary>
+        /// All Transactions
+        /// </summary>
+        SimpleConcurrentDic<int, DbTransaction> _allTrans = new();
+
+        /// <summary>
+        /// Create a new WebSocketRequest
+        /// </summary>
+        /// <param name="wss">WebSocketServer</param>
+        /// <param name="ws">WebSocket</param>
+        /// <param name="ctx">HttpContext</param>
+        internal WebSocketRequest(WebSocketServer wss, WebSocket ws, HttpContext ctx)
+        {
+            _logger = wss.Logger;
+
+            _ws = ws;
+            _wss = wss;
+            _ctx = ctx;
+        }
+        /// <summary>
+        /// Check if the WebSocket is open from the timer
+        /// </summary>
+        /// <returns></returns>
+        internal bool Check()
+        {
+            return _ws.State == WebSocketState.Open;
+        }
+        /// <summary>
+        /// CleanUp
+        /// </summary>
+        public void Dispose()
+        {
+            //Close alconnections should close related stuff
+            //lets relay on that for now
+            foreach (var item in _allCons)
+            {
+                try
+                {
+                    if (item?.State == ConnectionState.Open)
+                        item?.Close();
+                    item?.Dispose();
+                }
+                catch { }
+            }
+        }
+        /// <summary>
+        /// Actual Recive and Send Loop
+        /// </summary>
+        /// <returns>Task</returns>
+        internal async Task Recive()
+        {
+
+            try
+            {
+                //Init
+                bool isError = false;
+                var baHead = new byte[StaticWSHelpers.SizeOfHead];
+                string? closedDesc = string.Empty;
+                WebSocketCloseStatus? closedStatus = null;
+
+                //Loop as long as no error
+                while (!isError)
+                {
+                    //Data per request
+                    byte[] baOut;
+                    var baIn = Array.Empty<byte>();
+                    SalouReturnType rty = SalouReturnType.Nothing;
+                    Span<byte> span;
+                    int len;
+                    SalouRequestType? reqToDo = null;
+                    WsCallID? sid = null;
+
+                    //Recive Header
+                    (isError, closedStatus, closedDesc) = await StaticWSHelpers.WSReciveFull(_ws, baHead, false);
+                    if (isError && closedStatus != null)
+                        break;
+                    if (!isError)
+                    {
+                        span = new Span<byte>(baHead);
+                        len = StaticWSHelpers.ReadInt(ref span);
+                        reqToDo = (SalouRequestType)StaticWSHelpers.ReadByte(ref span);
+                        sid = StaticWSHelpers.ReadInt(ref span);
+
+                        SalouLog.LoggerFkt(LogLevel.Information, () => $"Recieved Header {reqToDo} {sid} len: {len}");
+
+                        //Recive Data
+                        baIn = new byte[len];
+                        if (len > 0)
+                            (isError, closedStatus, closedDesc) = await StaticWSHelpers.WSReciveFull(_ws, baIn);
+
+                        SalouLog.LoggerFkt(LogLevel.Debug, () => $"Recieved Data {len}=={baIn.Length} {sid}");
+
+                        //Check length and Closed
+                        if (isError && closedStatus != null)
+                            break;
+                    }
+                    //***prepare send
+                    //Check if we have enough Data
+                    if (isError || reqToDo == null || sid == null)// && closedStatus == null
+                    {
+                        using (var ms = new MemoryStream())
+                        {
+                            SalouLog.LoggerFkt(LogLevel.Warning, () => $"Not Enough Data {reqToDo} {sid}");
+
+                            ms.Write(StaticWSHelpers.StartBaEmpty);//Space for Header
+                            StaticWSHelpers.WriteString(ms, "Not Enough Data");
+                            rty = SalouReturnType.Exception;
+                            baOut = ms.ToArray();
+                        }
+                        isError = false;
+                    }
+                    else
+                    {
+                        //Prepare Data to be send
+                        using (var ms = new MemoryStream())
+                        {
+                            ms.Write(StaticWSHelpers.StartBaEmpty);//Space for Header
+
+                            //*Parse the Data and do work
+                            rty = await ProcessRequest(reqToDo.Value, sid.Value, baIn, ms);
+
+                            baIn = Array.Empty<byte>();//Free Memory
+                            baOut = ms.ToArray();
+                        }
+                        SalouLog.LoggerFkt(LogLevel.Debug, () => $"Send Data {rty} {sid}");
+                    }
+
+                    // Add Header
+                    span = new Span<byte>(baOut);
+                    BinaryPrimitives.WriteInt32LittleEndian(span, Math.Max(baOut.Length - StaticWSHelpers.SizeOfHead, 0));//cant' ref in Async
+                    span = span.Slice(StaticWSHelpers.SizeOfInt);
+                    span[0] = (byte)rty; span = span.Slice(1);
+                    BinaryPrimitives.WriteInt32LittleEndian(span, sid == null ? int.MinValue : (int)sid);
+
+                    SalouLog.LoggerFkt(LogLevel.Information, () => $"Answer {reqToDo} {sid} {rty} len: {baOut.Length - StaticWSHelpers.SizeOfHead}");
+
+                    //Send
+                    await _ws.SendAsync(baOut, WebSocketMessageType.Binary, true, CancellationToken.None);
+                }
+                //try normal Close
+                await _ws.CloseAsync(closedStatus.GetValueOrDefault(WebSocketCloseStatus.NormalClosure), closedDesc, CancellationToken.None);
+                SalouLog.LoggerFkt(LogLevel.Information, () => $"WS Closed");
+            }
+            catch (Exception ex)
+            {
+                SalouLog.LoggerFkt(LogLevel.Error, () => $"{ex.Message} Error in Recive", ex);
+            }
+        }
+
+        /// <summary>
+        /// Process the Request - do the Real Work
+        /// </summary>
+        /// <param name="reqToDo">SalouRequestType</param>
+        /// <param name="sid">id</param>
+        /// <param name="baIn">Data comming in</param>
+        /// <param name="msOut">MemoryStream outgoing Data</param>
+        /// <returns>TAsk SalouReturnType</returns>
+        /// <exception cref="Exception"></exception>
+        private async Task<SalouReturnType> ProcessRequest(SalouRequestType reqToDo, WsCallID sid, byte[] baIn, MemoryStream msOut)
+        {
+            DbCommand? cmd = null;
+            var spanIn = new Span<byte>(baIn);
+            switch (reqToDo)
+            {
+                case SalouRequestType.TransactionRollback:
+                    try //Doing this in a Method doesnt make the code better ;)
+                    {
+                        var id = StaticWSHelpers.ReadInt(ref spanIn);
+                        var tran = _allTrans.Get(id);
+                        if (tran != null)
+                        {
+                            _allTrans.Remove(id);
+                            await tran.RollbackAsync();
+                            await tran.DisposeAsync();
+                            return SalouReturnType.Nothing;
+                        }
+                        SalouLog.LoggerFkt(LogLevel.Trace, () => $"Transaction is null");
+                        StaticWSHelpers.WriteString(msOut, "Transaction is null");
+                        return SalouReturnType.Exception;
+
+                    }
+                    catch (Exception ex)
+                    {
+                        SalouLog.LoggerFkt(LogLevel.Error, () => $"{ex.Message} Error in TransactionCommit", ex);
+                        StaticWSHelpers.WriteString(msOut, ex.Message);
+                        return SalouReturnType.Exception;
+                    }
+                case SalouRequestType.TransactionCommit:
+                    try
+                    {
+                        var id = StaticWSHelpers.ReadInt(ref spanIn);
+                        var tran = _allTrans.Get(id);
+                        if (tran != null)
+                        {
+                            _allTrans.Remove(id);
+                            await tran.CommitAsync();
+                            await tran.DisposeAsync();
+                            return SalouReturnType.Nothing;
+                        }
+                        SalouLog.LoggerFkt(LogLevel.Trace, () => $"Transaction is null");
+                        StaticWSHelpers.WriteString(msOut, "Transaction is null");
+                        return SalouReturnType.Exception;
+                    }
+                    catch (Exception ex)
+                    {
+                        SalouLog.LoggerFkt(LogLevel.Error, () => $"{ex.Message} Error in TransactionCommit", ex);
+                        StaticWSHelpers.WriteString(msOut, ex.Message);
+                        return SalouReturnType.Exception;
+                    }
+                case SalouRequestType.CommandCancel:
+                    try
+                    {
+                        var id = StaticWSHelpers.ReadInt(ref spanIn);
+                        cmd = _allCmd.Get(id);
+                        if (cmd != null)
+                        {
+                            _allCmd.Remove(id);
+                            cmd.Cancel();
+                            cmd.Dispose();
+                            return SalouReturnType.Nothing;
+                        }
+                        SalouLog.LoggerFkt(LogLevel.Trace, () => $"Command is null");
+                        StaticWSHelpers.WriteString(msOut, "Command is null");
+                        return SalouReturnType.Exception;
+                    }
+                    catch (Exception ex)
+                    {
+                        SalouLog.LoggerFkt(LogLevel.Error, () => $"{ex.Message} Error in CommandCancel", ex);
+                        StaticWSHelpers.WriteString(msOut, ex.Message);
+                        return SalouReturnType.Exception;
+                    }
+                case SalouRequestType.ConnectionOpen:
+                    try
+                    {
+                        var v = StaticWSHelpers.ReadInt(ref spanIn);
+                        if (v != 1)
+                        {
+                            SalouLog.LoggerFkt(LogLevel.Error, () => $"Version missmatch");
+                            throw new Exception("Version missmatch");
+                        }
+
+                        var constr = StaticWSHelpers.ReadString(ref spanIn);
+                        var db = StaticWSHelpers.ReadString(ref spanIn);
+                        var con = await _wss.CreateOpenCon(constr, db, _ctx);
+                        if (con != null && con.State == ConnectionState.Open)
+                        {
+                            _allCons.Add(sid, con);
+                            StaticWSHelpers.WriteInt(msOut, sid);
+                        }
+                        else
+                            StaticWSHelpers.WriteInt(msOut, -1);
+
+                        return SalouReturnType.Integer;
+                    }
+                    catch (Exception ex)
+                    {
+                        SalouLog.LoggerFkt(LogLevel.Error, () => $"{ex.Message} Error in ConnectionOpen", ex);
+                        StaticWSHelpers.WriteString(msOut, ex.Message);
+                        return SalouReturnType.Exception;
+                    }
+                case SalouRequestType.ChangeDatabase:
+                    try
+                    {
+                        var id = StaticWSHelpers.ReadInt(ref spanIn);
+                        var db = StaticWSHelpers.ReadString(ref spanIn);
+                        var con = _allCons.Get(id);
+                        if (con != null && db != null)
+                        {
+                            await con.ChangeDatabaseAsync(db);
+                            return SalouReturnType.Nothing;
+                        }
+                        SalouLog.LoggerFkt(LogLevel.Trace, () => $"Connection is null");
+                        StaticWSHelpers.WriteString(msOut, "Connection or DBName is null");
+                        return SalouReturnType.Exception;
+                    }
+                    catch (Exception ex)
+                    {
+                        SalouLog.LoggerFkt(LogLevel.Error, () => $"{ex.Message} Error in ChangeDatabase", ex);
+                        StaticWSHelpers.WriteString(msOut, ex.Message);
+                        return SalouReturnType.Exception;
+                    }
+                case SalouRequestType.ConnectionClose:
+                    try
+                    {
+                        var id = StaticWSHelpers.ReadInt(ref spanIn);
+                        var con = _allCons.Get(id);
+                        if (con != null)
+                        {
+                            try
+                            {
+                                //Also close a transaction
+                                var tran = _allTrans.Get(id);
+                                if (tran != null)
+                                {
+                                    _allTrans.Remove(id);
+                                    await tran.RollbackAsync();
+                                    await tran.DisposeAsync();
+                                }
+                            }
+                            catch { }
+
+                            _allCons.Remove(id);
+                            await con.CloseAsync();
+                            await con.DisposeAsync();
+                            return SalouReturnType.Nothing;
+                        }
+                        SalouLog.LoggerFkt(LogLevel.Trace, () => $"Connection is null");
+                        StaticWSHelpers.WriteString(msOut, "Connection is null");
+                        return SalouReturnType.Exception;
+                    }
+                    catch (Exception ex)
+                    {
+                        SalouLog.LoggerFkt(LogLevel.Error, () => $"{ex.Message} Error in ConnectionClose", ex);
+                        StaticWSHelpers.WriteString(msOut, ex.Message);
+                        return SalouReturnType.Exception;
+                    }
+                case SalouRequestType.BeginTransaction:
+                    try
+                    {
+                        var id = StaticWSHelpers.ReadInt(ref spanIn);
+                        var con = _allCons.Get(id);
+                        if (con != null)
+                        {
+                            var isol = (IsolationLevel)StaticWSHelpers.ReadInt(ref spanIn);
+                            var tran = await con.BeginTransactionAsync(isol);
+                            _allTrans.Add(id, tran);//1 Tran per Connection
+                            return SalouReturnType.Nothing;
+                        }
+                        SalouLog.LoggerFkt(LogLevel.Trace, () => $"Connection is null");
+                        StaticWSHelpers.WriteString(msOut, "Connection is null");
+                        return SalouReturnType.Exception;
+                    }
+                    catch (Exception ex)
+                    {
+                        SalouLog.LoggerFkt(LogLevel.Error, () => $"{ex.Message} Error in BeginTransaction", ex);
+                        StaticWSHelpers.WriteString(msOut, ex.Message);
+                        return SalouReturnType.Exception;
+                    }
+                case SalouRequestType.ServerVersion:
+                    try
+                    {
+                        var id = StaticWSHelpers.ReadInt(ref spanIn);
+                        var con = _allCons.Get(id);
+                        if (con != null)
+                        {
+                            SalouLog.LoggerFkt(LogLevel.Trace, () => $"con?.ServerVersion");
+                            StaticWSHelpers.WriteString(msOut, con?.ServerVersion);
+                            return SalouReturnType.String;
+                        }
+                        SalouLog.LoggerFkt(LogLevel.Trace, () => $"Connection is null");
+                        StaticWSHelpers.WriteString(msOut, "Connection is null");
+                        return SalouReturnType.Exception;
+                    }
+                    catch (Exception ex)
+                    {
+                        SalouLog.LoggerFkt(LogLevel.Error, () => $"{ex.Message} Error in ServerVersion", ex);
+                        StaticWSHelpers.WriteString(msOut, ex.Message);
+                        return SalouReturnType.Exception;
+                    }
+                case SalouRequestType.ExecuteNonQuery:
+                    {
+                        try
+                        {
+                            var id = StaticWSHelpers.ReadInt(ref spanIn);
+                            var con = _allCons.Get(id);
+                            if (con != null)
+                            {
+                                cmd = PrepareCommand(id, con, ref spanIn);
+                                _allCmd.Add(sid, cmd);
+
+                                var ret = await cmd.ExecuteNonQueryAsync();
+                                var baOut = new byte[StaticWSHelpers.SizeOfInt];
+                                BinaryPrimitives.WriteInt32LittleEndian(new Span<byte>(baOut), ret);
+
+                                return PostCommand(cmd, msOut, SalouReturnType.Integer, baOut);
+                            }
+                            SalouLog.LoggerFkt(LogLevel.Trace, () => $"Connection is null");
+                            StaticWSHelpers.WriteString(msOut, "Connection is null");
+                            return SalouReturnType.Exception;
+                        }
+                        catch (Exception ex)
+                        {
+                            SalouLog.LoggerFkt(LogLevel.Error, () => $"{ex.Message} Error in ExecuteNonQuery", ex);
+                            StaticWSHelpers.WriteString(msOut, ex.Message);
+                            return SalouReturnType.Exception;
+                        }
+                        finally
+                        {
+                            if (cmd != null)
+                            {
+                                _allCmd.Remove(sid);
+                                await cmd.DisposeAsync();
+                            }
+                        }
+                    }
+                case SalouRequestType.ExecuteScalar:
+                    try
+                    {
+                        var spanIn2 = new Span<byte>(baIn);//Span Boundery Error
+                        var id = StaticWSHelpers.ReadInt(ref spanIn2);
+                        var con = _allCons.Get(id);
+                        if (con != null)
+                        {
+                            cmd = PrepareCommand(id, con, ref spanIn2);
+                            _allCmd.Add(sid, cmd);
+
+                            object? obj = await cmd.ExecuteScalarAsync();
+
+                            return PostCommand(cmd, msOut, SalouReturnType.NullableDBType, obj);
+                        }
+                        SalouLog.LoggerFkt(LogLevel.Trace, () => $"Connection is null");
+                        StaticWSHelpers.WriteString(msOut, "Connection is null");
+                        return SalouReturnType.Exception;
+                    }
+                    catch (Exception ex)
+                    {
+                        SalouLog.LoggerFkt(LogLevel.Error, () => $"{ex.Message} Error in ExecuteNonQuery", ex);
+                        StaticWSHelpers.WriteString(msOut, ex.Message);
+                        return SalouReturnType.Exception;
+                    }
+                    finally
+                    {
+                        if (cmd != null)
+                        {
+                            _allCmd.Remove(sid);
+                            await cmd.DisposeAsync();
+                        }
+                    }
+                case SalouRequestType.ExecuteReaderStart:
+                    try
+                    {
+                        var spanIn2 = new Span<byte>(baIn);//Span Boundery Error
+                        var conID = StaticWSHelpers.ReadInt(ref spanIn2);
+                        var con = _allCons.Get(conID);
+                        if (con != null)
+                        {
+                            cmd = PrepareCommand(conID, con, ref spanIn2);
+                            _allCmd.Add(sid, cmd);
+
+                            var behave = StaticWSHelpers.ReadInt(ref spanIn2);
+                            var pageSize = StaticWSHelpers.ReadInt(ref spanIn2);
+                            var useSchema = (UseSchema)StaticWSHelpers.ReadByte(ref spanIn2);
+
+                            //Start the Reader
+                            var rdr = new DataReader(cmd, (CommandBehavior)behave, sid, useSchema);
+                            _allRDR.Add(sid, rdr);
+
+                            byte[] ba3;
+                            using (var ms = new MemoryStream())
+                            {
+                                await rdr.Start(ms, pageSize);
+                                ba3 = ms.ToArray();
+                            }
+
+                            return PostCommand(cmd, msOut, SalouReturnType.ReaderStart, ba3);
+                        }
+                        SalouLog.LoggerFkt(LogLevel.Trace, () => $"Connection is null");
+                        StaticWSHelpers.WriteString(msOut, "Connection is null");
+                        return SalouReturnType.Exception;
+                    }
+                    catch (Exception ex)
+                    {
+                        SalouLog.LoggerFkt(LogLevel.Error, () => $"{ex.Message} Error in ReaderStart", ex);
+                        StaticWSHelpers.WriteString(msOut, ex.Message);
+                        return SalouReturnType.Exception;
+                    }
+                case SalouRequestType.EndReader:
+                    try
+                    {
+                        var id = StaticWSHelpers.ReadInt(ref spanIn);
+                        DataReader? rdr = _allRDR.Get(id);
+                        if (rdr == null)
+                        {
+                            SalouLog.LoggerFkt(LogLevel.Trace, () => $"Reader not found");
+                            StaticWSHelpers.WriteString(msOut, "Reader not found");
+                            return SalouReturnType.Exception;
+                        }
+                        //End the Reader
+                        await rdr.End();
+
+                        _allRDR.Remove(id);
+                        cmd = _allCmd.Get(id);
+                        if (cmd != null)
+                        {
+                            _allCmd.Remove(id);//Same sid
+                            await cmd.DisposeAsync();
+                        }
+                        return SalouReturnType.Nothing;
+                    }
+                    catch (Exception ex)
+                    {
+                        SalouLog.LoggerFkt(LogLevel.Error, () => $"{ex.Message} Error in EndReader", ex);
+                        StaticWSHelpers.WriteString(msOut, ex.Message);
+                        return SalouReturnType.Exception;
+                    }
+                case SalouRequestType.ContinueReader:
+                    try
+                    {
+                        var id = StaticWSHelpers.ReadInt(ref spanIn);
+                        var pageSize = StaticWSHelpers.ReadInt(ref spanIn);
+                        DataReader? rdr = _allRDR.Get(id);
+                        if (rdr == null)
+                        {
+                            SalouLog.LoggerFkt(LogLevel.Trace, () => $"Reader not found");
+                            StaticWSHelpers.WriteString(msOut, "Reader not found");
+                            return SalouReturnType.Exception;
+                        }
+                        await rdr.Continue(msOut, pageSize);
+                        return SalouReturnType.ReaderContinue;
+                    }
+                    catch (Exception ex)
+                    {
+                        SalouLog.LoggerFkt(LogLevel.Error, () => $"{ex.Message} Error in ContinueReader", ex);
+                        StaticWSHelpers.WriteString(msOut, ex.Message);
+                        return SalouReturnType.Exception;
+                    }
+                case SalouRequestType.ReaderNextResult:
+                    try
+                    {
+                        var id = StaticWSHelpers.ReadInt(ref spanIn);
+                        var pageSize = StaticWSHelpers.ReadInt(ref spanIn);
+                        DataReader? rdr = _allRDR.Get(id);
+                        if (rdr == null)
+                        {
+                            SalouLog.LoggerFkt(LogLevel.Trace, () => $"Reader not found");
+                            StaticWSHelpers.WriteString(msOut, "Reader not found");
+                            return SalouReturnType.Exception;
+                        }
+                        if (await rdr.NextResult(msOut, pageSize))
+                            return SalouReturnType.ReaderStart;
+                        else
+                            return SalouReturnType.Nothing;
+                    }
+                    catch (Exception ex)
+                    {
+                        SalouLog.LoggerFkt(LogLevel.Error, () => $"{ex.Message} Error in ReaderNextResult", ex);
+                        StaticWSHelpers.WriteString(msOut, ex.Message);
+                        return SalouReturnType.Exception;
+                    }
+                default:
+                    SalouLog.LoggerFkt(LogLevel.Error, () => $"{reqToDo} unknown");
+                    throw new Exception($"SalouReturnType unknown");
+            }
+        }
+
+        /// <summary>
+        /// Postprocessing Command Data
+        /// </summary>
+        /// <param name="cmd">DbCommand</param>
+        /// <param name="msOut">MemoryStream</param>
+        /// <param name="returnType">inner SalouReturnType</param>
+        /// <param name="obj">inner object</param>
+        /// <returns>SalouReturnType</returns>
+        private SalouReturnType PostCommand(DbCommand cmd, MemoryStream msOut, SalouReturnType returnType, object? obj)
+        {
+            var outP = (from DbParameter p in cmd.Parameters
+                        where p.Direction == ParameterDirection.Output || p.Direction == ParameterDirection.InputOutput || p.Direction == ParameterDirection.ReturnValue
+                        select p).ToArray();
+
+            //Got Out Parameters
+            if (outP.Length > 0)
+            {
+                SalouLog.LoggerFkt(LogLevel.Debug, () => $"Out Parameters {outP.Length}");
+
+                StaticWSHelpers.WriteInt(msOut, outP.Length);
+                foreach (DbParameter p in outP)
+                {
+                    StaticWSHelpers.WriteString(msOut, p.ParameterName);
+                    StaticWSHelpers.WriteNullableDbType(msOut, new NullableDBType(p.DbType), p.Value);
+                }
+
+                //inner return
+                msOut.WriteByte((byte)returnType);
+
+                if (obj == null || returnType == SalouReturnType.NullableDBType)
+                    StaticWSHelpers.WriteObjectAsDBType(msOut, obj);
+                else
+                    msOut.Write((byte[])obj);
+                return SalouReturnType.CommandParameters;
+            }
+
+            //No, so just the inner return
+            if (obj == null || returnType == SalouReturnType.NullableDBType)
+            {
+                StaticWSHelpers.WriteObjectAsDBType(msOut, obj);
+                return SalouReturnType.NullableDBType;
+            }
+            else
+            {
+                msOut.Write((byte[])obj);
+                return returnType;
+            }
+        }
+
+        /// <summary>
+        /// Prepare a Command
+        /// </summary>
+        /// <param name="id">id</param>
+        /// <param name="con">DbConnection</param>
+        /// <param name="span">data</param>
+        /// <returns>DbCommand</returns>
+        private DbCommand PrepareCommand(int id, DbConnection con, ref Span<byte> span)
+        {
+            var cd = new CommandData(ref span);
+            var cmd = con!.CreateCommand();
+            cmd.CommandText = cd.CommandText;
+            cmd.CommandTimeout = cd.CommandTimeout;
+            cmd.CommandType = cd.CommandType;
+
+            SalouLog.LoggerFkt(LogLevel.Information, () => $"PrepareCommand {cd.CommandText}");
+            SalouLog.LoggerFkt(LogLevel.Debug, () => $"In Parameters {cd.Parameters.Count}");
+
+            foreach (SalouParameter p in cd.Parameters)
+            {
+                var np = cmd.CreateParameter();
+                np.ParameterName = p.ParameterName;
+                np.Value = p.Value;
+                np.DbType = p.DbType;
+                np.Direction = p.Direction;
+                np.Size = p.Size;
+
+                cmd.Parameters.Add(np);
+            }
+
+            var tran = _allTrans.Get(id);
+            if (tran != null)
+                cmd.Transaction = tran;
+
+            return cmd;
+        }
+
+
+    }
+}
