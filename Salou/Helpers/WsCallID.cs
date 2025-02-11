@@ -46,5 +46,13 @@ namespace SalouWS4Sql.Helpers
         {
             return value._value;
         }
+        /// <summary>
+        /// to string from WsCallID
+        /// </summary>
+        /// <returns>string</returns>
+        public override string ToString()
+        {
+            return _value.ToString();
+        }
     }
 }

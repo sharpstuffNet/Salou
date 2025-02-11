@@ -20,15 +20,14 @@
     <Company>sharpstuff.net</Company>
     <Description>inject a WebSocket into a SQLServer Connection net4.8 Client</Description>
     <Copyright>horstsstuff@sharpstuff.net</Copyright>
-
-	  <PackageLicenseExpression>MIT</PackageLicenseExpression>
-	  <IncludeSymbols>True</IncludeSymbols>
-	  <PackageReadmeFile>README.md</PackageReadmeFile>
-	  <PackageProjectUrl>https://github.com/horstsstuff/Salou</PackageProjectUrl>
-	  <RepositoryUrl>https://github.com/horstsstuff/Salou</RepositoryUrl>
-	  <PackageId>net.sharpstuff.salou.ws4sql</PackageId>
-	  <Version>1.0.1</Version>
-	  <Authors>horstsstuff@sharpstuff.net</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <IncludeSymbols>True</IncludeSymbols>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/horstsstuff/Salou</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/horstsstuff/Salou</RepositoryUrl>
+    <PackageId>net.sharpstuff.salou.ws4sql</PackageId>
+    <Version>1.0.1</Version>
+    <Authors>horstsstuff@sharpstuff.net</Authors>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>

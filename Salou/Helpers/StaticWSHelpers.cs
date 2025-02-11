@@ -212,11 +212,12 @@ namespace SalouWS4Sql.Helpers
         /// Read a NullableDBType from Span and move span
         /// </summary>
         /// <param name="span">data</param>
-        /// <returns></returns>
-        internal static (object?, Type) ReadNullableDbType(ref Span<byte> span)
+        /// <param name="Null">null or DBNull.value for null</param>
+        /// <returns>object, type</returns>
+        internal static (object?, Type) ReadNullableDbType(ref Span<byte> span, object? Null)
         {
             var ty = new NullableDBType(ref span);
-            return ReadNullableDbTypeDAta(ty, ref span);
+            return ReadNullableDbTypeData(ty, ref span,Null);
         }
         /// <summary>
         /// Read a NullableDBType's Data from Span and move span
@@ -224,8 +225,9 @@ namespace SalouWS4Sql.Helpers
         /// <param name="ty">NullableDBType</param>
         /// <param name="span">data</param>
         /// <param name="recursiveProtection">so the object can't create a infinit loop</param>
-        /// <returns></returns>
-        internal static (object?, Type) ReadNullableDbTypeDAta(NullableDBType ty, ref Span<byte> span2, bool recursiveProtection = false)
+        /// <param name="Null">null or DBNull.value for null</param>
+        /// <returns>object, type</returns>
+        internal static (object?, Type) ReadNullableDbTypeData(NullableDBType ty, ref Span<byte> span2,object? Null, bool recursiveProtection = false)
         {
             var span3 = span2;
             DateTimeKind kind;
@@ -233,31 +235,31 @@ namespace SalouWS4Sql.Helpers
             switch (ty.Type)
             {
                 case DbType.AnsiString:
-                    return (ty.IsNull ? null : StaticWSHelpers.ReadString(ref span2), typeof(String));
+                    return (ty.IsNull ? Null : StaticWSHelpers.ReadString(ref span2), typeof(String));
                 case DbType.Binary:
                     {
                         if (ty.IsNull)
-                            return (null, typeof(byte[]));
+                            return (Null, typeof(byte[]));
                         var len2 = BinaryPrimitives.ReadInt32LittleEndian(span2);
                         span2 = span2.Slice(SizeOfInt + len2);
                         return (span3.Slice(StaticWSHelpers.SizeOfInt, len2).ToArray(), typeof(byte[]));
                     }
                 case DbType.Byte:
-                    return (ty.IsNull) ? (null, typeof(Byte)) : (ReadByte(ref span2), typeof(Byte));
+                    return (ty.IsNull) ? (Null, typeof(Byte)) : (ReadByte(ref span2), typeof(Byte));
                 case DbType.Boolean:
-                    return (ty.IsNull) ? (null, typeof(Boolean)) : ((bool)(ReadByte(ref span2) == 'T'), typeof(Boolean));
+                    return (ty.IsNull) ? (Null, typeof(Boolean)) : ((bool)(ReadByte(ref span2) == 'T'), typeof(Boolean));
                 case DbType.Currency:
-                    return (ty.IsNull ? null : new decimal(StaticWSHelpers.ReadArray4(ref span2)), typeof(decimal));
+                    return (ty.IsNull ? Null : new decimal(StaticWSHelpers.ReadArray4(ref span2)), typeof(decimal));
                 case DbType.Date:
-                    return (ty.IsNull) ? (null, typeof(DateOnly)) : (DateOnly.FromDayNumber(ReadInt(ref span2)), typeof(DateOnly));
+                    return (ty.IsNull) ? (Null, typeof(DateOnly)) : (DateOnly.FromDayNumber(ReadInt(ref span2)), typeof(DateOnly));
                 case DbType.DateTime:
-                    if (ty.IsNull) return (null, typeof(DateTime));
+                    if (ty.IsNull) return (Null, typeof(DateTime));
                     kind = ReadByte(ref span2) == 'U' ? DateTimeKind.Utc : DateTimeKind.Local;
                     return (new DateTime(ReadLong(ref span2), kind), typeof(DateTime));
                 case DbType.Decimal:
-                    return (ty.IsNull ? null : new decimal(StaticWSHelpers.ReadArray4(ref span2)), typeof(decimal));
+                    return (ty.IsNull ? Null : new decimal(StaticWSHelpers.ReadArray4(ref span2)), typeof(decimal));
                 case DbType.Double:
-                    if (ty.IsNull) return (null, typeof(double));
+                    if (ty.IsNull) return (Null, typeof(double));
                     span2 = span2.Slice(sizeof(double));
 #if NETFX48
                     return (Net48Extensions.ReadDoubleLittleEndian(span3), typeof(double));
@@ -265,7 +267,7 @@ namespace SalouWS4Sql.Helpers
                     return (BinaryPrimitives.ReadDoubleLittleEndian(span3), typeof(double));
 #endif
                 case DbType.Guid:
-                    if (ty.IsNull) return (null, typeof(Guid));
+                    if (ty.IsNull) return (Null, typeof(Guid));
                     span2 = span2.Slice(16);
 #if NETFX48
                     return (new Guid(span3.ToArray()), typeof(Guid));
@@ -273,29 +275,29 @@ namespace SalouWS4Sql.Helpers
                     return (new Guid(span3), typeof(Guid));
 #endif
                 case DbType.Int16:
-                    if (ty.IsNull) return (null, typeof(Int16));
+                    if (ty.IsNull) return (Null, typeof(Int16));
                     span2 = span2.Slice(sizeof(Int16));
                     return (BinaryPrimitives.ReadInt16LittleEndian(span3), typeof(Int16));
                 case DbType.Int32:
-                    return (ty.IsNull) ? (null, typeof(Int32)) : (ReadInt(ref span2), typeof(Int32));
+                    return (ty.IsNull) ? (Null, typeof(Int32)) : (ReadInt(ref span2), typeof(Int32));
                 case DbType.Int64:
-                    return (ty.IsNull) ? (null, typeof(Int64)) : (ReadLong(ref span2), typeof(Int64));
+                    return (ty.IsNull) ? (Null, typeof(Int64)) : (ReadLong(ref span2), typeof(Int64));
                 case DbType.Object:
                     if (ty.IsNull)
-                        return (null, typeof(Object));
+                        return (Null, typeof(Object));
                     if (!recursiveProtection)
                     {
                         //if not null try to do inner type right
                         var ty2 = new NullableDBType(ref span2);
-                        var dbty = ReadNullableDbTypeDAta(ty2, ref span2, true);
+                        var dbty = ReadNullableDbTypeData(ty2, ref span2, Null,true);
                         return (dbty.Item1, typeof(Object));
                     }
                     else
                         throw new SalouException("Recursive type protection");
                 case DbType.SByte:
-                    return (ty.IsNull) ? (null, typeof(SByte)) : ((sbyte)ReadByte(ref span2), typeof(SByte));
+                    return (ty.IsNull) ? (Null, typeof(SByte)) : ((sbyte)ReadByte(ref span2), typeof(SByte));
                 case DbType.Single:
-                    if (ty.IsNull) return (null, typeof(Single));
+                    if (ty.IsNull) return (Null, typeof(Single));
                     span2 = span2.Slice(sizeof(Single));
 #if NETFX48
                     return (Net48Extensions.ReadSingleLittleEndian(span3), typeof(Single));
@@ -304,26 +306,26 @@ namespace SalouWS4Sql.Helpers
 #endif
 
                 case DbType.String:
-                    return (ty.IsNull ? null : StaticWSHelpers.ReadString(ref span2), typeof(String));
+                    return (ty.IsNull ? Null : StaticWSHelpers.ReadString(ref span2), typeof(String));
                 case DbType.Time:
-                    return (ty.IsNull) ? (null, typeof(TimeOnly)) : (new TimeOnly(ReadLong(ref span2)), typeof(TimeOnly));
+                    return (ty.IsNull) ? (Null, typeof(TimeOnly)) : (new TimeOnly(ReadLong(ref span2)), typeof(TimeOnly));
                 case DbType.UInt16:
-                    if (ty.IsNull) return (null, typeof(UInt16));
+                    if (ty.IsNull) return (Null, typeof(UInt16));
                     span2 = span2.Slice(sizeof(UInt16));
                     return (BinaryPrimitives.ReadUInt16LittleEndian(span3), typeof(UInt16));
                 case DbType.UInt32:
-                    return (ty.IsNull) ? (null, typeof(UInt32)) : ((UInt32)ReadInt(ref span2), typeof(UInt32));
+                    return (ty.IsNull) ? (Null, typeof(UInt32)) : ((UInt32)ReadInt(ref span2), typeof(UInt32));
                 case DbType.UInt64:
-                    return (ty.IsNull) ? (null, typeof(UInt64)) : ((UInt64)ReadLong(ref span2), typeof(Int64));
+                    return (ty.IsNull) ? (Null, typeof(UInt64)) : ((UInt64)ReadLong(ref span2), typeof(Int64));
                 case DbType.VarNumeric:
                     throw new SalouException("Unsupported Type VarNumeric");
                 case DbType.AnsiStringFixedLength:
-                    return (ty.IsNull ? null : StaticWSHelpers.ReadString(ref span2), typeof(string));//Could optimize with trim and 2nd length
+                    return (ty.IsNull ? Null : StaticWSHelpers.ReadString(ref span2), typeof(string));//Could optimize with trim and 2nd length
                 case DbType.StringFixedLength:
-                    return (ty.IsNull ? null : StaticWSHelpers.ReadString(ref span2), typeof(string));//Could optimize with trim and 2nd length
+                    return (ty.IsNull ? Null : StaticWSHelpers.ReadString(ref span2), typeof(string));//Could optimize with trim and 2nd length
                 case DbType.Xml:
                     if (ty.IsNull)
-                        return (null, typeof(System.Xml.XmlDocument));
+                        return (Null, typeof(System.Xml.XmlDocument));
                     else
                     {
                         var st = StaticWSHelpers.ReadString(ref span2);
@@ -334,11 +336,11 @@ namespace SalouWS4Sql.Helpers
                         return (xd, typeof(System.Xml.XmlDocument));
                     }
                 case DbType.DateTime2:
-                    if (ty.IsNull) return (null, typeof(DateTime));
+                    if (ty.IsNull) return (Null, typeof(DateTime));
                     kind = ReadByte(ref span2) == 'U' ? DateTimeKind.Utc : DateTimeKind.Local;
                     return (new DateTime(ReadLong(ref span2)), typeof(DateTime));
                 case DbType.DateTimeOffset:
-                    if (ty.IsNull) return (null, typeof(DateTimeOffset));
+                    if (ty.IsNull) return (Null, typeof(DateTimeOffset));
                     var ticks = ReadLong(ref span2);
                     var offSetTicks = ReadLong(ref span2);
                     return (new DateTimeOffset(ticks, new TimeSpan(offSetTicks)), typeof(DateTimeOffset));
@@ -442,19 +444,16 @@ namespace SalouWS4Sql.Helpers
         /// <exception cref="SalouException"></exception>
         internal static void WriteNullableDbType(MemoryStream ms, NullableDBType ty, object? obj)
         {
-            NullableDBType ty2 = new NullableDBType(ty.Type, obj == null);
+            NullableDBType ty2 = new NullableDBType(ty.Type, obj == null || obj is DBNull);
             ty2.ToMs(ms);
 
-            if (obj == null)
+            if (obj == null || obj is DBNull)
                 return;
 
             byte[] ba2;
 
             switch (ty2.Type)
-            {
-                case DbType.AnsiString:
-                    StaticWSHelpers.WriteString(ms, (string)obj);
-                    break;
+            {                
                 case DbType.Binary:
                     WriteInt(ms, ((byte[])obj).Length);
                     ms.Write((byte[])obj);
@@ -517,10 +516,7 @@ namespace SalouWS4Sql.Helpers
 #endif
 
                     ms.Write(ba2);
-                    break;
-                case DbType.String:
-                    StaticWSHelpers.WriteString(ms, (string)obj);
-                    break;
+                    break;               
                 case DbType.Time:
                     WriteLong(ms, ((TimeOnly)obj).Ticks);
                     break;
@@ -537,9 +533,9 @@ namespace SalouWS4Sql.Helpers
                     break;
                 case DbType.VarNumeric:
                     throw new SalouException("Unsupported Type VarNumeric");
-                case DbType.AnsiStringFixedLength:
-                    StaticWSHelpers.WriteString(ms, (string)obj);
-                    break;
+                case DbType.String:                    
+                case DbType.AnsiString:                   
+                case DbType.AnsiStringFixedLength:                    
                 case DbType.StringFixedLength:
                     StaticWSHelpers.WriteString(ms, (string)obj);
                     break;

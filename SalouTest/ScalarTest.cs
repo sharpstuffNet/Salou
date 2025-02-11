@@ -74,6 +74,27 @@ namespace SalouTest
         /// scalar test
         /// </summary>
         [TestMethod]
+        public void StringScalarDBNull()
+        {
+            Assert.IsNotNull(_con);
+            var cmd = _con.CreateCommand();
+            cmd.CommandText = "[dbo].SeaCostumers";
+            cmd.CommandType = System.Data.CommandType.StoredProcedure;
+            cmd.Parameters.AddWithValue("@sea", DBNull.Value);
+            cmd.Parameters.Add(new SalouParameter() { DbType = System.Data.DbType.Int32, Direction = System.Data.ParameterDirection.Output, ParameterName = "@product_count" });
+            cmd.Parameters.Add(new SalouParameter() { DbType = System.Data.DbType.Int32, Direction = System.Data.ParameterDirection.ReturnValue, ParameterName = "@return_value" });
+            var x = cmd.ExecuteScalar();
+            Assert.AreEqual(0, cmd.Parameters[1].Value);
+            Assert.AreEqual(111, cmd.Parameters[2].Value);
+            Assert.IsNull( x);
+        }
+
+       
+
+        /// <summary>
+        /// scalar test
+        /// </summary>
+        [TestMethod]
         public void StringScalarDec()
         {
             Assert.IsNotNull(_con);

@@ -124,7 +124,7 @@ namespace SalouWS4Sql.Helpers
                                 //dr[j] = (DbType)StaticWSHelpers.ReadByte(ref span);
                             }
                             else
-                                dr[j] = StaticWSHelpers.ReadNullableDbType(ref span).Item1 ?? DBNull.Value;
+                                dr[j] = StaticWSHelpers.ReadNullableDbType(ref span, DBNull.Value).Item1;
                         }
                         dr.EndEdit();
                         dr.AcceptChanges();

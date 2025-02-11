@@ -35,9 +35,9 @@ namespace SalouWS4Sql.Helpers
         /// <param name="ba">data</param>
         public NullableDBType(ref Span<byte> ba)
         {
-            sbyte value = (sbyte)StaticWSHelpers.ReadByte(ref ba);
-            Type = value < 0 ? (DbType)(-value) : (DbType)value;
-            IsNull = value < 0;
+            byte value = StaticWSHelpers.ReadByte(ref ba);
+            Type = value >= 128 ? (DbType)(value-128) : (DbType)value;
+            IsNull = value >= 128;
         }
         /// <summary>
         /// Create a NullableDBType
@@ -56,15 +56,15 @@ namespace SalouWS4Sql.Helpers
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ToMs(MemoryStream ms)
         {
-            ms.WriteByte((byte)(IsNull ? -((sbyte)Type) : (sbyte)Type));
+            ms.WriteByte((byte)(IsNull ? ((byte)Type)+128 : (byte)Type));
         }
         /// <summary>
         /// Convert to byte
         /// </summary>
         /// <param name="value">sbyte</param>
-        public static implicit operator NullableDBType(sbyte value)
+        public static implicit operator NullableDBType(byte value)
         {
-            return new NullableDBType { Type = value<0 ? (DbType)(-value) : (DbType)value, IsNull =value<0 };
+            return new NullableDBType { Type = value >= 128 ? (DbType)(value - 128) : (DbType)value, IsNull = value>=128 };
         }
         /// <summary>
         /// read from byte
@@ -72,8 +72,16 @@ namespace SalouWS4Sql.Helpers
         /// <param name="value">NullableDBType</param>
         public static implicit operator byte(NullableDBType value)
         {
-            return (byte)(value.IsNull ?  -((sbyte)value.Type) : (sbyte)value.Type);
+            return (byte)(value.IsNull ? ((byte)value.Type) + 128 : (byte)value.Type);
         }
 
+        /// <summary>
+        /// Convert to string
+        /// </summary>
+        /// <returns>string</returns>
+        public override string ToString()
+        {
+            return $"{Type} {(IsNull ? "NULL" : "")}";
+        }
     }
 }

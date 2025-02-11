@@ -273,7 +273,7 @@ namespace SalouWS4Sql.Client
                     return (DBNull.Value, typeof(DBNull));
                 case SalouReturnType.NullableDBType:
                     var ty = new NullableDBType(ref span);
-                    return StaticWSHelpers.ReadNullableDbTypeDAta(ty, ref span);
+                    return StaticWSHelpers.ReadNullableDbTypeData(ty, ref span,null);
                 case SalouReturnType.Nothing:
                     return default;
                 case SalouReturnType.Exception:

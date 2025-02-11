@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Logging;
 using SalouWS4Sql;
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
@@ -15,6 +16,11 @@ namespace SalouWS4Sql.Client
     /// </summary>
     public class SalouConnection : DbConnection
     {
+        /// <summary>
+        /// Add a Header to the Websocket Request for example authentication
+        /// </summary>
+        public static Dictionary<string,string?> RequestHeaders = new Dictionary<string,string?>();
+
         /// <summary>
         /// Uri static store
         /// </summary>
