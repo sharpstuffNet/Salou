@@ -18,6 +18,10 @@ namespace SalouWS4Sql.Server
     internal class DataReader
     {
         /// <summary>
+        /// WSRID
+        /// </summary>
+        int _WSRID;
+        /// <summary>
         /// real reader
         /// </summary>
         DbDataReader? _reader;
@@ -49,12 +53,13 @@ namespace SalouWS4Sql.Server
         /// <param name="behave">CommandBehavior</param>
         /// <param name="sid">WsCallID</param>
         /// <param name="useSchema">UseSchema</param>
-        public DataReader(DbCommand cmd, CommandBehavior behave, WsCallID sid, UseSchema useSchema)
+        public DataReader(DbCommand cmd, CommandBehavior behave, WsCallID sid,int wsrid, UseSchema useSchema)
         {
             _useSchema = useSchema;
             _cmd = cmd;
             _behave = behave;
             ID = sid;
+            _WSRID = wsrid;
         }
         /// <summary>
         /// Start the reader
@@ -75,7 +80,7 @@ namespace SalouWS4Sql.Server
         /// <returns>Task success</returns>
         internal async Task<bool> NextResult(MemoryStream msOut, int pageSize)
         {
-            SalouLog.LoggerFkt(LogLevel.Trace, () => $"Reader NextResult");
+            SalouLog.LoggerFkt(LogLevel.Trace, () => $"WSRID: {_WSRID}. Reader NextResult");
 
             if (_reader == null)
                 return false;
@@ -97,7 +102,7 @@ namespace SalouWS4Sql.Server
         private async Task InitDataSet(MemoryStream msOut, int pageSize)
         {
             if (_reader == null)
-                throw new InvalidOperationException("Reader is null");
+                throw new InvalidOperationException($"WSRID: {_WSRID}. Reader is null");
 
             _data = new ReaderData(
                             ID,
@@ -110,7 +115,7 @@ namespace SalouWS4Sql.Server
                             _useSchema
                             );
 
-            SalouLog.LoggerFkt(LogLevel.Debug, () => $"InitDataSet {ID} {_reader.FieldCount} {_useSchema}");
+            SalouLog.LoggerFkt(LogLevel.Debug, () => $"WSRID: {_WSRID}. InitDataSet ReaderID: {ID} Fileds: {_reader.FieldCount} Schema: {_useSchema}");
 
             _data.Write(msOut);
             using (var ms2 = new MemoryStream())
@@ -130,7 +135,7 @@ namespace SalouWS4Sql.Server
         internal async Task Continue(MemoryStream msOut, int pageSize)
         {
             if (_reader == null || _data==null)
-                throw new InvalidOperationException("Reader is null");
+                throw new InvalidOperationException($"WSRID: {_WSRID}. Reader is null");
 
             int r = 0;
             while (r++ < pageSize && await _reader.ReadAsync())
@@ -139,7 +144,7 @@ namespace SalouWS4Sql.Server
                     StaticWSHelpers.WriteObjectAsDBType(msOut, _reader[c]);
             }
 
-            SalouLog.LoggerFkt(LogLevel.Trace, () => $"Reader Continue {r} Rows");
+            SalouLog.LoggerFkt(LogLevel.Trace, () => $"WSRID: {_WSRID}. Reader Continue {r} Rows");
         }
         /// <summary>
         /// End the reader usage (Close)
@@ -148,10 +153,10 @@ namespace SalouWS4Sql.Server
         /// <exception cref="InvalidOperationException"></exception>
         internal async Task End()
         {
-            SalouLog.LoggerFkt(LogLevel.Trace, () => $"Reader End");
+            SalouLog.LoggerFkt(LogLevel.Trace, () => $"WSRID: {_WSRID}. Reader End");
 
             if (_reader == null || _data == null)
-                throw new InvalidOperationException("Reader is null");
+                throw new InvalidOperationException($"WSRID: {_WSRID}. Reader is null");
 
             await _reader.CloseAsync();
         }

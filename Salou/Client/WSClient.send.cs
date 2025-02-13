@@ -67,9 +67,7 @@ namespace SalouWS4Sql.Client
         {
             byte[] baOut;
             var baIn= Array.Empty<byte>();
-            bool isError = false;
-            string? closedDesc = string.Empty;
-            WebSocketCloseStatus? closedStatus;
+            StaticWSHelpers.WsState wsRecivedState = StaticWSHelpers.WsState.OK;
 
             //Add Data to be send
             using (var ms = new MemoryStream())
@@ -96,48 +94,39 @@ namespace SalouWS4Sql.Client
             DOASyncSerialized(async () =>
             {
                 //Send
-                await _webSocket.SendAsync(baOut, WebSocketMessageType.Binary, true, CancellationToken.None);
+                if (_webSocket.State == WebSocketState.Open)
+                    await _webSocket.SendAsync(baOut, WebSocketMessageType.Binary, true, CancellationToken.None);
 
                 baOut=Array.Empty<byte>();//Free Memory
 
                 //Recive Header
                 var baHead = new byte[StaticWSHelpers.SizeOfHead];
-                (isError, closedStatus, closedDesc) = await StaticWSHelpers.WSReciveFull(_webSocket, baHead, false);
-
-                if (isError)
+                wsRecivedState = await StaticWSHelpers.WSReciveFull(_webSocket, baHead, false);
+                if (wsRecivedState == StaticWSHelpers.WsState.OK)
                 {
-                    if (closedStatus == null)
-                        throw new SalouException(closedDesc ?? "Error Unknown");
-                    else
-                        throw new SalouConClosedException(closedDesc ?? "Error Unknown");
+
+                    //Process Header
+                    var span = new Span<byte>(baHead);
+                    int len = StaticWSHelpers.ReadInt(ref span);
+                    rty = (SalouReturnType)StaticWSHelpers.ReadByte(ref span);
+                    var id = (WsCallID)StaticWSHelpers.ReadInt(ref span);
+
+                    if (id != sid)
+                        throw new SalouException("Invalid ID");
+
+                    SalouLog.LoggerFkt(LogLevel.Debug, () => $"Recieved Data. Expexted: {len} Recived: {baIn.Length} Call# {sid}");
+
+                    //Recive Data
+                    baIn = new byte[len];
+                    if (len > 0 && _webSocket.State == WebSocketState.Open)
+                        wsRecivedState = await StaticWSHelpers.WSReciveFull(_webSocket, baIn); 
                 }
-
-                //Process Header
-                var span = new Span<byte>(baHead);
-                int len = StaticWSHelpers.ReadInt(ref span);
-                rty = (SalouReturnType)StaticWSHelpers.ReadByte(ref span);
-                var id = (WsCallID)StaticWSHelpers.ReadInt(ref span);
-
-                if (id != sid)
-                    throw new SalouException("Invalid ID");
-
-                SalouLog.LoggerFkt(LogLevel.Debug, () => $"Recieved Data {len}=={baIn.Length} {sid}");
-
-                //Recive Data
-                baIn = new byte[len];
-                if (len > 0)
-                {
-                    (isError, closedStatus, closedDesc) = await StaticWSHelpers.WSReciveFull(_webSocket, baIn);
-                    if (isError)
-                    {
-                        if (closedStatus == null)
-                            throw new SalouException(closedDesc ?? "Error Unknown");
-                        else
-                            throw new SalouConClosedException(closedDesc ?? "Error Unknown");
-                    }
-                }
-
             });
+
+            if(_webSocket.State== WebSocketState.CloseReceived)
+                try{ _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Close", CancellationToken.None).Wait(); } catch { }//ignore
+            if (_webSocket.State != WebSocketState.Open)
+                throw new SalouConClosedException("Connection Closed"); 
 
             //Process Data
             return ProcessReturn(sid, rty, para, baIn);
@@ -152,7 +141,7 @@ namespace SalouWS4Sql.Client
         /// <exception cref="SalouException"></exception>
         private void WriteBytesToSend(MemoryStream ms, SalouRequestType tranToDO, object[] para)
         {
-            SalouLog.LoggerFkt(LogLevel.Trace, () => $"WriteBytesToSend Data {tranToDO} {para.Length}");
+            SalouLog.LoggerFkt(LogLevel.Trace, () => $"WriteBytesToSend {tranToDO} Param Length: {para.Length}");
 
             switch (tranToDO)
             {
@@ -161,7 +150,7 @@ namespace SalouWS4Sql.Client
                         if (para.Length != 2)
                             throw new SalouException("Invalid Parameter");
 
-                        StaticWSHelpers.WriteInt(ms,1);//Version
+                        StaticWSHelpers.WriteInt(ms,Version.VERSION_NUMBER);//Version
                         StaticWSHelpers.WriteString(ms, (string)para[0]);//ConStr
                         StaticWSHelpers.WriteString(ms, (string)para[1]);//DataBase
                     }
@@ -259,7 +248,7 @@ namespace SalouWS4Sql.Client
         /// <exception cref="SalouException"></exception>
         private (object?, Type) ProcessReturn(WsCallID sid, SalouReturnType rty, object[] para, byte[] baIn)
         {
-            SalouLog.LoggerFkt(LogLevel.Trace, () => $"ProcessReturn Data {rty} {para.Length} {baIn.Length}");
+            SalouLog.LoggerFkt(LogLevel.Trace, () => $"ProcessReturn Data {rty} Param Length: {para.Length} Data Length: {baIn.Length}");
             var span = new Span<byte>(baIn);
             switch (rty)
             {
@@ -267,6 +256,12 @@ namespace SalouWS4Sql.Client
                     return (span[0] == 0, typeof(Boolean));
                 case SalouReturnType.Integer:
                     return (StaticWSHelpers.ReadInt(ref (span)), typeof(Int32));
+                case SalouReturnType.Long:
+                    return (StaticWSHelpers.ReadLong(ref (span)), typeof(Int64));
+                case SalouReturnType.TwoInt32:
+                    var i1= StaticWSHelpers.ReadInt(ref (span));
+                    var i2 = StaticWSHelpers.ReadInt(ref (span));
+                    return ((i1,i2), typeof((int,int)));
                 case SalouReturnType.String:
                     return (StaticWSHelpers.ReadString(ref span), typeof(string));
                 case SalouReturnType.DBNull:

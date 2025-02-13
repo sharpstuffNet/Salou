@@ -181,6 +181,9 @@
     <Compile Include="..\Salou\SalouReturnType.cs">
       <Link>SalouReturnType.cs</Link>
     </Compile>
+    <Compile Include="..\Salou\Version.cs">
+      <Link>Version.cs</Link>
+    </Compile>
     <Compile Include="Nullable\AllowNullAttribute.cs" />
     <Compile Include="Nullable\DisallowNullAttribute.cs" />
     <Compile Include="Nullable\DoesNotReturnAttribute.cs" />

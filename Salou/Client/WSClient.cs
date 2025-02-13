@@ -63,7 +63,7 @@ namespace SalouWS4Sql.Client
             _timeout = timeout;
             _semaphore = new SemaphoreSlim(1);
             _webSocket = new ClientWebSocket();
-            foreach (var item in SalouConnection.RequestHeaders)
+            foreach (var item in SalouConnection.Salou_RequestHeaders)
                 _webSocket.Options.SetRequestHeader(item.Key,item.Value);
             _ct = new CancellationToken();
 

@@ -115,6 +115,8 @@ namespace SalouWS4Sql.Helpers
                 return (span.ToArray(), typeof(byte[]));
             if (rt == SalouReturnType.Integer)
                 return (StaticWSHelpers.ReadInt(ref span),typeof(int));
+            if (rt == SalouReturnType.Long)
+                return (StaticWSHelpers.ReadLong(ref span), typeof(Int64));
             return (null,typeof(object));
         }
     }

@@ -43,41 +43,52 @@ namespace SalouWS4Sql.Helpers
         internal static readonly byte[] StartBaEmpty = new byte[SizeOfHead];
 
         /// <summary>
+        /// Socket State
+        /// </summary>
+        internal enum WsState
+        {
+            OK,
+            Error,
+            Closed,
+            Closing
+        }
+        /// <summary>
         /// Read a full message from a WebSocket in multiple steps till long enogh and drop the rest
         /// </summary>
         /// <param name="ws"></param>
         /// <param name="ba"></param>
         /// <param name="readRest"></param>
         /// <returns></returns>
-        internal static async Task<(bool, WebSocketCloseStatus?, string?)> WSReciveFull(WebSocket ws, byte[] ba, bool readRest = true)
-        {
+        internal static async Task<WsState> WSReciveFull(WebSocket ws, byte[] ba, bool readRest = true)
+        {            
             WebSocketReceiveResult? wssr = null;
             int recBytes = 0;
             while (recBytes < ba.Length)
             {
-                wssr = await ws.ReceiveAsync(new ArraySegment<byte>(ba, recBytes, ba.Length - recBytes), System.Threading.CancellationToken.None);
+                if (ws.State!=WebSocketState.Open)
+                    return (ws.State==WebSocketState.CloseReceived ? WsState.Closing : WsState.Closed);
 
-                if (wssr == null || wssr.EndOfMessage)
-                    return (recBytes == ba.Length, null, null);
-#pragma warning disable CS8629 // Nullable value type may be null.
-                if (wssr.MessageType == WebSocketMessageType.Close)
-                    return (true, wssr.CloseStatus.Value, wssr.CloseStatusDescription);
-#pragma warning restore CS8629 // Nullable value type may be null.
+                wssr = await ws.ReceiveAsync(new ArraySegment<byte>(ba, recBytes, ba.Length - recBytes), System.Threading.CancellationToken.None);
                 recBytes += wssr.Count;
+
+                if (wssr.EndOfMessage)
+                    return (recBytes == ba.Length ? WsState.OK : WsState.Error);
+
+                else if (wssr.MessageType == WebSocketMessageType.Close)
+                    return (WsState.Closing);                
             }
             //drop the Rest
             while (readRest)
             {
+                if (ws.State!=WebSocketState.Open)
+                    return (ws.State == WebSocketState.CloseReceived ? WsState.Closing : WsState.Closed);
+
                 byte[] ba2 = new byte[1024];
                 wssr = await ws.ReceiveAsync(ba2, System.Threading.CancellationToken.None);
-                if (wssr == null || wssr.EndOfMessage)
-                    return (recBytes == ba.Length, null, null);
-#pragma warning disable CS8629 // Nullable value type may be null.
-                if (wssr.MessageType == WebSocketMessageType.Close)
-                    return (true, wssr.CloseStatus.Value, wssr.CloseStatusDescription);
-#pragma warning restore CS8629 // Nullable value type may be null.
+                if (wssr.EndOfMessage)
+                    break;
             }
-            return (recBytes != ba.Length, null, null);
+            return (recBytes == ba.Length ? WsState.OK : WsState.Error);
         }
         /// <summary>
         /// Read a string from a Span and move span

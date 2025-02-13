@@ -19,11 +19,11 @@ namespace SalouWS4Sql.Client
         /// <summary>
         /// Default Page Size for the DataReader
         /// </summary>
-        public static int DefaultPageSize {get;set; } = 100;
+        public static int Salou_DefaultPageSize {get;set; } = 100;
         /// <summary>
         /// Default Page Size for the DataReader used in the initial call where also the schema has to be send
         /// </summary>
-        public static int DefaultPageSizeInitalCall { get; set; } = 25;
+        public static int Salou_DefaultPageSizeInitalCall { get; set; } = 25;
         /// <summary>
         /// Store the Parameters
         /// </summary>
@@ -60,11 +60,11 @@ namespace SalouWS4Sql.Client
         /// <summary>
         /// Page Size for the DataReader
         /// </summary>
-        public int ReaderPageSize { get; set; } = DefaultPageSize;
+        public int Salou_ReaderPageSize { get; set; } = Salou_DefaultPageSize;
         /// <summary>
         /// Page Size for the DataReader used in the initial call where also the schema has to be send
         /// </summary>
-        public int PageSizeInitalCall { get; set; } = DefaultPageSizeInitalCall;
+        public int Salou_PageSizeInitalCall { get; set; } = Salou_DefaultPageSizeInitalCall;
         /// <summary>
         /// Use Schema for the DataReader
         /// </summary>
@@ -179,11 +179,11 @@ namespace SalouWS4Sql.Client
                 throw new SalouException("UpdatedRowSource not supported");
 
             var cd = new CommandData(CommandText, CommandTimeout, CommandType, Parameters);
-            var x= _salouConnection.WsClient.Send<byte[]>(SalouRequestType.ExecuteReaderStart, _wsCallID, _salouConnection.ConSrvrId, cd, behavior, Math.Min(ReaderPageSize, PageSizeInitalCall), ReaderUseSchema);
+            var x= _salouConnection.WsClient.Send<byte[]>(SalouRequestType.ExecuteReaderStart, _wsCallID, _salouConnection.ConSrvrId, cd, behavior, Math.Min(Salou_ReaderPageSize, Salou_PageSizeInitalCall), ReaderUseSchema);
             if(x == null || x.Length==0)
                 throw new SalouException("No Data returned");
 
-            return new SalouDataReader(_salouConnection,ReaderPageSize, x);
+            return new SalouDataReader(_salouConnection,Salou_ReaderPageSize, x);
         }
         /// <inheritdoc /> 
         override protected void Dispose(bool disposing)

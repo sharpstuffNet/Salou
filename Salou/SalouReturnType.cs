@@ -51,5 +51,13 @@ namespace SalouWS4Sql
         /// ReaderContinue
         /// </summary>
         ReaderContinue,
+        /// <summary>
+        /// Long
+        /// </summary>
+        Long,
+        /// <summary>
+        /// TwoInt32
+        /// </summary>
+        TwoInt32,
     }
 }

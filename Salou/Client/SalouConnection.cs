@@ -19,8 +19,11 @@ namespace SalouWS4Sql.Client
         /// <summary>
         /// Add a Header to the Websocket Request for example authentication
         /// </summary>
-        public static Dictionary<string,string?> RequestHeaders = new Dictionary<string,string?>();
-
+        public static Dictionary<string, string?> Salou_RequestHeaders = new Dictionary<string, string?>();
+        /// <summary>
+        /// Try too Leave the Client open over multiple connections
+        /// </summary>
+        public static bool Salou_LeaveClientOpen { get; set; } = true;
         /// <summary>
         /// Uri static store
         /// </summary>
@@ -43,7 +46,7 @@ namespace SalouWS4Sql.Client
         /// <param name="logger">Logger</param>
         /// <param name="configuration">Configuration</param>
         /// <exception cref="SalouException"></exception>
-        public static void ClientInit(ILogger? logger, IConfiguration? configuration)
+        public static void Salou_ClientInit(ILogger? logger, IConfiguration? configuration)
         {
             __logger = logger;
 
@@ -57,8 +60,8 @@ namespace SalouWS4Sql.Client
             __uri = new Uri(url);
             __timeout = cfg.GetValue<int>("Timeout");
             __constr = cfg.GetValue<string>("Connstr");
-            SalouCommand.DefaultPageSize = cfg.GetValue<int>("ReaderPageSize");
-            SalouCommand.DefaultPageSizeInitalCall = cfg.GetValue<int>("ReaderPageSizeInitalCall");   
+            SalouCommand.Salou_DefaultPageSize = cfg.GetValue<int>("ReaderPageSize");
+            SalouCommand.Salou_DefaultPageSizeInitalCall = cfg.GetValue<int>("ReaderPageSizeInitalCall");
         }
 
         /// <summary>
@@ -78,6 +81,10 @@ namespace SalouWS4Sql.Client
         /// Connection Service ID
         /// </summary>
         int _conSrvrId;
+        /// <summary>
+        /// Server WSRID
+        /// </summary>
+        int _WSRID;
 
         /// <summary>
         /// Create a SalouConnection
@@ -112,8 +119,8 @@ namespace SalouWS4Sql.Client
             _uri = string.IsNullOrEmpty(url) ? __uri! : new Uri(url);
             _timeout = cfg.GetValue<int>("Timeout");
             ConnectionString = cfg.GetValue<string>("Connstr");
-            SalouCommand.DefaultPageSize = cfg.GetValue<int>("ReaderPageSize");
-            SalouCommand.DefaultPageSizeInitalCall = cfg.GetValue<int>("ReaderPageSizeInitalCall");
+            SalouCommand.Salou_DefaultPageSize = cfg.GetValue<int>("ReaderPageSize");
+            SalouCommand.Salou_DefaultPageSizeInitalCall = cfg.GetValue<int>("ReaderPageSizeInitalCall");
         }
 
         /// <summary>
@@ -135,6 +142,11 @@ namespace SalouWS4Sql.Client
         /// Web Service Client
         /// </summary>
         WSClient? _wsClient;
+
+        /// <summary>
+        /// Web Service Client
+        /// </summary>
+        static WSClient? __wsClient;
 
         /// <summary>
         /// Store the ConnectionState
@@ -187,13 +199,16 @@ namespace SalouWS4Sql.Client
                 if (_wsClient == null)
                     throw new SalouException("Connection not open");
 
-                return _wsClient.Send<string>(SalouRequestType.ServerVersion,null,_conSrvrId) ?? string.Empty;
+                return _wsClient.Send<string>(SalouRequestType.ServerVersion, null, _conSrvrId) ?? string.Empty;
             }
         }
 
         /// <inheritdoc />
         public override ConnectionState State => StateInternal;
 
+        /// <summary>
+        /// Srever Side CallID
+        /// </summary>
         internal int ConSrvrId { get => _conSrvrId; }
 
         /// <inheritdoc />
@@ -205,7 +220,7 @@ namespace SalouWS4Sql.Client
             if (_wsClient == null)
                 throw new SalouException("Connection not open");
 
-            _wsClient?.Send(SalouRequestType.BeginTransaction, null,_conSrvrId, il);
+            _wsClient?.Send(SalouRequestType.BeginTransaction, null, _conSrvrId, il);
             return new SalouTransaction(this, il);
         }
 
@@ -225,8 +240,12 @@ namespace SalouWS4Sql.Client
             if (_wsClient == null)
                 throw new SalouException("Connection not open");
 
-            _wsClient?.Send(SalouRequestType.ConnectionClose,null,_conSrvrId);
-            _wsClient?.Close();
+            _wsClient?.Send(SalouRequestType.ConnectionClose, null, _conSrvrId);
+
+            if (!Salou_LeaveClientOpen || _wsClient != __wsClient)
+            {
+                _wsClient?.Close();
+            }
             _wsClient = null;
             StateInternal = ConnectionState.Closed;
         }
@@ -237,7 +256,7 @@ namespace SalouWS4Sql.Client
             if (!disposing)
                 return;
 
-            _wsClient?.Send(SalouRequestType.ConnectionClose);
+            _wsClient?.Send(SalouRequestType.ConnectionClose, null, _conSrvrId);
             _wsClient?.Dispose();
             _wsClient = null;
             StateInternal = ConnectionState.Closed;
@@ -253,12 +272,24 @@ namespace SalouWS4Sql.Client
                 throw new SalouException("Connection not initialized");
 
             StateInternal = ConnectionState.Connecting;
-            _wsClient = new WSClient(_logger, _uri, _timeout);
-            _wsClient.Open();
+            if (!Salou_LeaveClientOpen || __wsClient == null)
+            {
+                _wsClient = new WSClient(_logger, _uri, _timeout);
+                _wsClient.Open();
+                if (Salou_LeaveClientOpen)
+                    __wsClient = _wsClient;
+            }
+            else
+                _wsClient = __wsClient;
 
-            _conSrvrId = (_wsClient?.Send<int>(SalouRequestType.ConnectionOpen, null, ConnectionString, Database)).GetValueOrDefault(-1);
-            if(_conSrvrId>-1)
+            var res = (_wsClient?.Send<(int, int)>(SalouRequestType.ConnectionOpen, null, ConnectionString, Database)).GetValueOrDefault((-1, -1));
+            if (res.Item1 > -1)
+            {
                 StateInternal = ConnectionState.Open;
+                _WSRID = res.Item1;
+                _conSrvrId = res.Item2;
+                _logger?.LogInformation($"Connection Opened: WSRID:{_WSRID}");
+            }
         }
     }
 }
