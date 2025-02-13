@@ -23,6 +23,7 @@ namespace SalouWS4Sql.Client
         /// <summary>
         /// Try too Leave the Client open over multiple connections
         /// </summary>
+        /// <remarks>force close using Close on an not opend connection after it is open</remarks>
         public static bool Salou_LeaveClientOpen { get; set; } = true;
         /// <summary>
         /// Uri static store
@@ -237,6 +238,12 @@ namespace SalouWS4Sql.Client
         /// <inheritdoc />
         public override void Close()
         {
+            if (!Salou_LeaveClientOpen && __wsClient != null && _wsClient == null)
+            {
+                __wsClient.Close();
+                __wsClient = null;
+                return;
+            }
             if (_wsClient == null)
                 throw new SalouException("Connection not open");
 
