@@ -2,7 +2,7 @@
 <package>
 	<metadata>
 		<id>net.sharpstuff.salou.ws4sql</id>
-		<version>1.1.1</version>
+		<version>1.2.0.0</version>
 		<title>net.sharpstuff.salou.ws4sql</title>
 		<authors>horstsstuff@sharpstuff.net</authors>
 		<requireLicenseAcceptance>false</requireLicenseAcceptance>
@@ -11,7 +11,7 @@
 		<projectUrl>https://github.com/horstsstuff/Salou</projectUrl>
 		<repository type="git" url="https://github.com/horstsstuff/Salou.git"/>
 		<description>use a WebSocket for a SQLServer Connection</description>
-		<releaseNotes>add RequestHeaders to connection, fix DBNULL Parameter</releaseNotes>
+		<releaseNotes>refactor - central configuration point + flexible type Handling</releaseNotes>
 		<copyright>horstsstuff@sharpstuff.net</copyright>
 		<tags>NET Websocket SQL</tags>
 		<readme>readme.md</readme>
