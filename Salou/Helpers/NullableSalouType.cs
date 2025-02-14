@@ -10,41 +10,41 @@ using System.Threading.Tasks;
 namespace SalouWS4Sql.Helpers
 {
     /// <summary>
-    /// NullableDBType store data for a DbType and if it is null
+    /// NullableSalouType store data for a DbType and if it is null
     /// </summary>
-    internal struct NullableDBType
+    internal struct NullableSalouType
     {
         /// <summary>
         /// DbType
         /// </summary>
-        public DbType Type { get; private set; }
+        public SalouType Type { get; private set; }
         /// <summary>
         /// Is Null
         /// </summary>
         public bool IsNull {get; private set; }
         /// <summary>
-        /// Create a NullableDBType
+        /// Create a NullableSalouType
         /// </summary>
-        public NullableDBType()
+        public NullableSalouType()
         {
                 
         }
         /// <summary>
-        /// Create a NullableDBType with data from a Span
+        /// Create a NullableSalouType with data from a Span
         /// </summary>
         /// <param name="ba">data</param>
-        public NullableDBType(ref Span<byte> ba)
+        public NullableSalouType(ref Span<byte> ba)
         {
             byte value = StaticWSHelpers.ReadByte(ref ba);
-            Type = value >= 128 ? (DbType)(value-128) : (DbType)value;
+            Type = value >= 128 ? (SalouType)(value-128) : (SalouType)value;
             IsNull = value >= 128;
         }
         /// <summary>
-        /// Create a NullableDBType
+        /// Create a NullableSalouType
         /// </summary>
         /// <param name="ty">DbType</param>
         /// <param name="isNull">isNull</param>
-        public NullableDBType(DbType ty, bool isNull=false)
+        public NullableSalouType(SalouType ty, bool isNull=false)
         {
             Type = ty;
             IsNull = isNull;
@@ -62,15 +62,15 @@ namespace SalouWS4Sql.Helpers
         /// Convert to byte
         /// </summary>
         /// <param name="value">sbyte</param>
-        public static implicit operator NullableDBType(byte value)
+        public static implicit operator NullableSalouType(byte value)
         {
-            return new NullableDBType { Type = value >= 128 ? (DbType)(value - 128) : (DbType)value, IsNull = value>=128 };
+            return new NullableSalouType { Type = value >= 128 ? (SalouType)(value - 128) : (SalouType)value, IsNull = value>=128 };
         }
         /// <summary>
         /// read from byte
         /// </summary>
-        /// <param name="value">NullableDBType</param>
-        public static implicit operator byte(NullableDBType value)
+        /// <param name="value">NullableSalouType</param>
+        public static implicit operator byte(NullableSalouType value)
         {
             return (byte)(value.IsNull ? ((byte)value.Type) + 128 : (byte)value.Type);
         }

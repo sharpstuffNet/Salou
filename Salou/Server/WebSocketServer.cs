@@ -56,12 +56,12 @@ namespace SalouWS4Sql.Server
         {
             CreateOpenCon = createOpenCon;
             Logger = logger;
-            SalouLog.Logger = logger;
+            Salou.Logger = logger;
 
             //start the cleanup Timer
             _ti = new Timer(TiCb, null, 30000, 30000);
 
-            SalouLog.LoggerFkt(LogLevel.Information, () => "Salou Server started");
+            Salou.LoggerFkt(LogLevel.Information, () => "Salou Server started");
         }
 
         /// <summary>
@@ -70,7 +70,7 @@ namespace SalouWS4Sql.Server
         /// <param name="state">unused</param>
         private void TiCb(object? state)
         {
-            SalouLog.LoggerFkt(LogLevel.Trace, () => "Timer Callback");
+            Salou.LoggerFkt(LogLevel.Trace, () => "Timer Callback");
 
             WebSocketRequest[] lst;
             lock (_allWSS)
@@ -94,7 +94,7 @@ namespace SalouWS4Sql.Server
         /// <returns>Task</returns>
         public async Task HandleWebSocketRequest(WebSocket ws, HttpContext ctx)
         {
-            SalouLog.LoggerFkt(LogLevel.Information, () => "AcceptWebSocketRequest");
+            Salou.LoggerFkt(LogLevel.Information, () => "AcceptWebSocketRequest");
 
             var wsr = new WebSocketRequest(this, ws,ctx);
             _allWSS.Add(wsr);

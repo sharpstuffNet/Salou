@@ -17,15 +17,6 @@ namespace SalouWS4Sql.Client
     public class SalouConnection : DbConnection
     {
         /// <summary>
-        /// Add a Header to the Websocket Request for example authentication
-        /// </summary>
-        public static Dictionary<string, string?> Salou_RequestHeaders = new Dictionary<string, string?>();
-        /// <summary>
-        /// Try too Leave the Client open over multiple connections
-        /// </summary>
-        /// <remarks>force close using Close on an not opend connection after it is open</remarks>
-        public static bool Salou_LeaveClientOpen { get; set; } = true;
-        /// <summary>
         /// Uri static store
         /// </summary>
         static Uri? __uri;
@@ -61,8 +52,7 @@ namespace SalouWS4Sql.Client
             __uri = new Uri(url);
             __timeout = cfg.GetValue<int>("Timeout");
             __constr = cfg.GetValue<string>("Connstr");
-            SalouCommand.Salou_DefaultPageSize = cfg.GetValue<int>("ReaderPageSize");
-            SalouCommand.Salou_DefaultPageSizeInitalCall = cfg.GetValue<int>("ReaderPageSizeInitalCall");
+            Salou.ReadConfiguration(configuration);
         }
 
         /// <summary>
@@ -120,8 +110,7 @@ namespace SalouWS4Sql.Client
             _uri = string.IsNullOrEmpty(url) ? __uri! : new Uri(url);
             _timeout = cfg.GetValue<int>("Timeout");
             ConnectionString = cfg.GetValue<string>("Connstr");
-            SalouCommand.Salou_DefaultPageSize = cfg.GetValue<int>("ReaderPageSize");
-            SalouCommand.Salou_DefaultPageSizeInitalCall = cfg.GetValue<int>("ReaderPageSizeInitalCall");
+            Salou.ReadConfiguration(configuration);
         }
 
         /// <summary>
@@ -238,7 +227,7 @@ namespace SalouWS4Sql.Client
         /// <inheritdoc />
         public override void Close()
         {
-            if (!Salou_LeaveClientOpen && __wsClient != null && _wsClient == null)
+            if (!Salou.LeaveClientOpen && __wsClient != null && _wsClient == null)
             {
                 __wsClient.Close();
                 __wsClient = null;
@@ -249,7 +238,7 @@ namespace SalouWS4Sql.Client
 
             _wsClient?.Send(SalouRequestType.ConnectionClose, null, _conSrvrId);
 
-            if (!Salou_LeaveClientOpen || _wsClient != __wsClient)
+            if (!Salou.LeaveClientOpen || _wsClient != __wsClient)
             {
                 _wsClient?.Close();
             }
@@ -279,11 +268,11 @@ namespace SalouWS4Sql.Client
                 throw new SalouException("Connection not initialized");
 
             StateInternal = ConnectionState.Connecting;
-            if (!Salou_LeaveClientOpen || __wsClient == null)
+            if (!Salou.LeaveClientOpen || __wsClient == null)
             {
                 _wsClient = new WSClient(_logger, _uri, _timeout);
                 _wsClient.Open();
-                if (Salou_LeaveClientOpen)
+                if (Salou.LeaveClientOpen)
                     __wsClient = _wsClient;
             }
             else

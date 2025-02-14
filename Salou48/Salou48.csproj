@@ -157,8 +157,8 @@
     <Compile Include="..\Salou\Helpers\Net48Extensions.cs">
       <Link>Net48Extensions.cs</Link>
     </Compile>
-    <Compile Include="..\Salou\Helpers\NullableDBType.cs">
-      <Link>NullableDBType.cs</Link>
+    <Compile Include="..\Salou\Helpers\NullableSalouType.cs">
+      <Link>NullableSalouType.cs</Link>
     </Compile>
     <Compile Include="..\Salou\Helpers\ReaderData.cs">
       <Link>ReaderData.cs</Link>
@@ -172,14 +172,20 @@
     <Compile Include="..\Salou\Helpers\WsCallID.cs">
       <Link>WsCallID.cs</Link>
     </Compile>
-    <Compile Include="..\Salou\SalouLog.cs">
-      <Link>SalouLog.cs</Link>
+    <Compile Include="..\Salou\Salou.Converter.cs">
+      <Link>Salou.Converter.cs</Link>
+    </Compile>
+    <Compile Include="..\Salou\Salou.cs">
+      <Link>Salou.cs</Link>
     </Compile>
     <Compile Include="..\Salou\SalouRequestType.cs">
       <Link>SalouRequestType.cs</Link>
     </Compile>
     <Compile Include="..\Salou\SalouReturnType.cs">
       <Link>SalouReturnType.cs</Link>
+    </Compile>
+    <Compile Include="..\Salou\SalouType.cs">
+      <Link>SalouType.cs</Link>
     </Compile>
     <Compile Include="..\Salou\Version.cs">
       <Link>Version.cs</Link>

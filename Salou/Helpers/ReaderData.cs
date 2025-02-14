@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -98,8 +99,8 @@ namespace SalouWS4Sql.Helpers
                         }
                         else
                         {
-                            var ty = (DbType)StaticWSHelpers.ReadByte(ref span);
-                            dt.Columns.Add(na, StaticWSHelpers.DbTypeToNetType(ty));
+                            var res = StaticWSHelpers.ClientRecievedSalouType(ref span);
+                            dt.Columns.Add(na, res.netType);
                         }
                     }
                     dt.EndInit();
@@ -113,18 +114,17 @@ namespace SalouWS4Sql.Helpers
                         dr.BeginEdit();
                         for (int j = 0; j < sctableCols; j++)
                         {
+                            var res = StaticWSHelpers.ClientRecievedSalouType(ref span);
                             if (j == tColumn)
                             {
-                                var ty = (DbType)StaticWSHelpers.ReadByte(ref span);
-                                dr[j] = StaticWSHelpers.DbTypeToNetType(ty);
+                                dr[j] = res.netType;
                             }
                             else if (j == tsColumn)
                             {
                                 ///ignored so that DataSet load etc works
-                                //dr[j] = (DbType)StaticWSHelpers.ReadByte(ref span);
                             }
                             else
-                                dr[j] = StaticWSHelpers.ReadNullableDbType(ref span, DBNull.Value).Item1;
+                                dr[j] = res.value;
                         }
                         dr.EndEdit();
                         dr.AcceptChanges();
@@ -237,8 +237,7 @@ namespace SalouWS4Sql.Helpers
                                 tsColumn = dc.Ordinal;
                             else
                             {
-                                var ty = StaticWSHelpers.DotNetTypeToDbType(dc.DataType, true);
-                                msOut.WriteByte((byte)ty);
+                                StaticWSHelpers.ServerWriteSalouType(msOut,null, dc.DataType, null);
                             }
                         }
                         StaticWSHelpers.WriteInt(msOut, SchemaTable.Rows.Count);
@@ -246,17 +245,17 @@ namespace SalouWS4Sql.Helpers
                         {
                             for (int i = 0; i < SchemaTable.Columns.Count; i++)
                             {
+                                
                                 if (i == tColumn)
                                 {
-                                    var ty = StaticWSHelpers.DotNetTypeToDbType((Type)dr[i], true);
-                                    msOut.WriteByte((byte)ty);
+                                    StaticWSHelpers.ServerWriteSalouType(msOut, null, (Type)dr[i],null);
                                 }
                                 else if (i == tsColumn)
                                 {
-                                    //msOut.WriteByte((byte)(DbType)dr[i]);
+                                    StaticWSHelpers.ServerWriteSalouType(msOut, null, null, dr[i]?.ToString());
                                 }
                                 else
-                                    StaticWSHelpers.WriteObjectAsDBType(msOut, dr[i], true);
+                                    StaticWSHelpers.ServerWriteSalouType(msOut, null, null, dr[i]);
                             }
                         }
                     }

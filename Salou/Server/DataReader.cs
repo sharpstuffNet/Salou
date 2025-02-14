@@ -80,7 +80,7 @@ namespace SalouWS4Sql.Server
         /// <returns>Task success</returns>
         internal async Task<bool> NextResult(MemoryStream msOut, int pageSize)
         {
-            SalouLog.LoggerFkt(LogLevel.Trace, () => $"WSRID: {_WSRID}. Reader NextResult");
+            Salou.LoggerFkt(LogLevel.Trace, () => $"WSRID: {_WSRID}. Reader NextResult");
 
             if (_reader == null)
                 return false;
@@ -115,7 +115,7 @@ namespace SalouWS4Sql.Server
                             _useSchema
                             );
 
-            SalouLog.LoggerFkt(LogLevel.Debug, () => $"WSRID: {_WSRID}. InitDataSet ReaderID: {ID} Fileds: {_reader.FieldCount} Schema: {_useSchema}");
+            Salou.LoggerFkt(LogLevel.Debug, () => $"WSRID: {_WSRID}. InitDataSet ReaderID: {ID} Fileds: {_reader.FieldCount} Schema: {_useSchema}");
 
             _data.Write(msOut);
             using (var ms2 = new MemoryStream())
@@ -141,10 +141,10 @@ namespace SalouWS4Sql.Server
             while (r++ < pageSize && await _reader.ReadAsync())
             {
                 for (int c = 0; c < _data.FieldCount; c++)
-                    StaticWSHelpers.WriteObjectAsDBType(msOut, _reader[c]);
+                    StaticWSHelpers.ServerWriteSalouType(msOut,null,null, _reader[c]);//if SChema maybe add Dtype
             }
 
-            SalouLog.LoggerFkt(LogLevel.Trace, () => $"WSRID: {_WSRID}. Reader Continue {r} Rows");
+            Salou.LoggerFkt(LogLevel.Trace, () => $"WSRID: {_WSRID}. Reader Continue {r} Rows");
         }
         /// <summary>
         /// End the reader usage (Close)
@@ -153,7 +153,7 @@ namespace SalouWS4Sql.Server
         /// <exception cref="InvalidOperationException"></exception>
         internal async Task End()
         {
-            SalouLog.LoggerFkt(LogLevel.Trace, () => $"WSRID: {_WSRID}. Reader End");
+            Salou.LoggerFkt(LogLevel.Trace, () => $"WSRID: {_WSRID}. Reader End");
 
             if (_reader == null || _data == null)
                 throw new InvalidOperationException($"WSRID: {_WSRID}. Reader is null");

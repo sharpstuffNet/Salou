@@ -28,9 +28,9 @@ namespace SalouWS4Sql
         /// </summary>
         DBNull,
         /// <summary>
-        /// NullableDBType
+        /// NullableSalouType
         /// </summary>
-        NullableDBType,
+        NullableSalouType,
         /// <summary>
         /// Bool
         /// </summary>

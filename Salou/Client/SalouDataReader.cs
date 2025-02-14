@@ -189,7 +189,7 @@ namespace SalouWS4Sql.Client
             {
                 var row = new object?[_data.FieldCount];
                 for (int c = 0; c < _data.FieldCount; c++)
-                    row[c] = StaticWSHelpers.ReadNullableDbType(ref ba, DBNull.Value).Item1;
+                    row[c] = StaticWSHelpers.ClientRecievedSalouType(ref ba).value;
 
                 i++;
                 _rows?.Add(row);

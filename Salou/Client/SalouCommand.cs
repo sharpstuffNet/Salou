@@ -17,14 +17,6 @@ namespace SalouWS4Sql.Client
     public class SalouCommand : DbCommand
     {
         /// <summary>
-        /// Default Page Size for the DataReader
-        /// </summary>
-        public static int Salou_DefaultPageSize {get;set; } = 100;
-        /// <summary>
-        /// Default Page Size for the DataReader used in the initial call where also the schema has to be send
-        /// </summary>
-        public static int Salou_DefaultPageSizeInitalCall { get; set; } = 25;
-        /// <summary>
         /// Store the Parameters
         /// </summary>
         SalouParameterCollection _dbParameterCollection = new SalouParameterCollection();
@@ -60,11 +52,11 @@ namespace SalouWS4Sql.Client
         /// <summary>
         /// Page Size for the DataReader
         /// </summary>
-        public int Salou_ReaderPageSize { get; set; } = Salou_DefaultPageSize;
+        public int Salou_ReaderPageSize { get; set; } = Salou.DefaultPageSize;
         /// <summary>
         /// Page Size for the DataReader used in the initial call where also the schema has to be send
         /// </summary>
-        public int Salou_PageSizeInitalCall { get; set; } = Salou_DefaultPageSizeInitalCall;
+        public int Salou_PageSizeInitalCall { get; set; } = Salou.DefaultPageSizeInitalCall;
         /// <summary>
         /// Use Schema for the DataReader
         /// </summary>

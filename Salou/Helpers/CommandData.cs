@@ -64,9 +64,9 @@ namespace SalouWS4Sql.Helpers
                 var p = new SalouParameter();
                 p.ParameterName = StaticWSHelpers.ReadString(ref span) ?? "";
                 p.Direction = (ParameterDirection)StaticWSHelpers.ReadByte(ref span);
-                var dbt = StaticWSHelpers.ReadNullableDbType(ref span,DBNull.Value);
-                p.DbType = StaticWSHelpers.DotNetTypeToDbType(dbt.Item2);
-                p.Value = dbt.Item1;
+                var data= StaticWSHelpers.ServerRecievedSalouType(ref span);
+                p.DbType = data.dbType;
+                p.Value = data.value;
                 Parameters.Add(p);
             }
         }
@@ -75,7 +75,7 @@ namespace SalouWS4Sql.Helpers
         /// serialize a CommandData
         /// </summary>
         /// <param name="ms">MemoryStream</param>
-        internal void Write(MemoryStream ms)
+        internal void WriteToServer(MemoryStream ms)
         {
             StaticWSHelpers.WriteString(ms, CommandText);
             StaticWSHelpers.WriteInt(ms, CommandTimeout);
@@ -86,7 +86,7 @@ namespace SalouWS4Sql.Helpers
             {
                 StaticWSHelpers.WriteString(ms, p.ParameterName);
                 ms.WriteByte((byte)p.Direction);
-                StaticWSHelpers.WriteNullableDbType(ms, new NullableDBType(p.DbType), p.Value);
+                StaticWSHelpers.ClientWriteSalouType(ms, p.DbType, p.Value);
             }
         }
 
@@ -95,7 +95,7 @@ namespace SalouWS4Sql.Helpers
         /// </summary>
         /// <param name="span">Data</param>
         /// <returns>object / type for the rest of the Data</returns>
-        internal (object?, Type) Read(ref Span<byte> span)
+        internal (object? value, Type netType) ReadReturnFromServer(ref Span<byte> span)
         {
             var cnt = StaticWSHelpers.ReadInt(ref span);
             for (int i = 0; i < cnt; i++)
@@ -104,13 +104,13 @@ namespace SalouWS4Sql.Helpers
                 var par = Parameters.Cast<DbParameter>()
                     .Where(p => (p.Direction == ParameterDirection.Output || p.Direction == ParameterDirection.InputOutput || p.Direction == ParameterDirection.ReturnValue) && p.ParameterName == name).FirstOrDefault();
                 if (par == null)
-                    StaticWSHelpers.ReadNullableDbType(ref span,null);//Dump and Move On
+                    StaticWSHelpers.DropSalouType(ref span);//Dump and Move On
                 else
-                    par.Value = StaticWSHelpers.ReadNullableDbType(ref span,null).Item1;
+                    par.Value = StaticWSHelpers.ClientRecievedSalouType(ref span).value; //Type already set
             }
             var rt = (SalouReturnType)StaticWSHelpers.ReadByte(ref span);
-            if (rt == SalouReturnType.NullableDBType)
-                return StaticWSHelpers.ReadNullableDbType(ref span,null);
+            if (rt == SalouReturnType.NullableSalouType)
+                return StaticWSHelpers.ClientRecievedSalouType(ref span);
             if (rt == SalouReturnType.ReaderStart || rt== SalouReturnType.ReaderContinue)
                 return (span.ToArray(), typeof(byte[]));
             if (rt == SalouReturnType.Integer)

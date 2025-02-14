@@ -36,10 +36,10 @@ namespace SalouWS4Sql.Client
         internal T? Send<T>(SalouRequestType reqType, WsCallID? sid = null, params object[] para)
         {
             var rt = SendIntern(reqType, sid ?? new WsCallID(), para);
-            SalouLog.LoggerFkt(LogLevel.Trace, () => $"WSClient Result {rt}");
-            if (typeof(T) == typeof(object) || rt.Item2 == typeof(T))
-                return rt.Item1 == null ? default(T) : (T)rt.Item1;
-            else if (rt.Item1 == null && rt.Item2 == null)
+            Salou.LoggerFkt(LogLevel.Trace, () => $"WSClient Result {rt}");
+            if (typeof(T) == typeof(object) || rt.netType == typeof(T))
+                return rt.value == null ? default(T) : (T)rt.value;
+            else if (rt.value == null && rt.netType == null)
                 return default(T);
             throw new SalouException("Invalid Type");
         }
@@ -63,7 +63,7 @@ namespace SalouWS4Sql.Client
         /// <returns>return value / type</returns>
         /// <exception cref="SalouException"></exception>
         /// <exception cref="SalouConClosedException"></exception>
-        private (object?, Type) SendIntern(SalouRequestType reqToDo, WsCallID sid, params object[] para)
+        private (object? value, Type netType) SendIntern(SalouRequestType reqToDo, WsCallID sid, params object[] para)
         {
             byte[] baOut;
             var baIn= Array.Empty<byte>();
@@ -86,7 +86,7 @@ namespace SalouWS4Sql.Client
             span[0] = (byte)reqToDo; span = span.Slice(1);
             BinaryPrimitives.WriteInt32LittleEndian(span, (int)sid);
 
-            SalouLog.LoggerFkt(LogLevel.Information, () => $"Send Header {reqToDo} {sid} len: {baOut.Length - StaticWSHelpers.SizeOfHead}");
+            Salou.LoggerFkt(LogLevel.Information, () => $"Send Header {reqToDo} {sid} len: {baOut.Length - StaticWSHelpers.SizeOfHead}");
 
             SalouReturnType rty = SalouReturnType.Nothing;
 
@@ -114,7 +114,7 @@ namespace SalouWS4Sql.Client
                     if (id != sid)
                         throw new SalouException("Invalid ID");
 
-                    SalouLog.LoggerFkt(LogLevel.Debug, () => $"Recieved Data. Expexted: {len} Recived: {baIn.Length} Call# {sid}");
+                    Salou.LoggerFkt(LogLevel.Debug, () => $"Recieved Data. Expexted: {len} Recived: {baIn.Length} Call# {sid}");
 
                     //Recive Data
                     baIn = new byte[len];
@@ -141,7 +141,7 @@ namespace SalouWS4Sql.Client
         /// <exception cref="SalouException"></exception>
         private void WriteBytesToSend(MemoryStream ms, SalouRequestType tranToDO, object[] para)
         {
-            SalouLog.LoggerFkt(LogLevel.Trace, () => $"WriteBytesToSend {tranToDO} Param Length: {para.Length}");
+            Salou.LoggerFkt(LogLevel.Trace, () => $"WriteBytesToSend {tranToDO} Param Length: {para.Length}");
 
             switch (tranToDO)
             {
@@ -181,7 +181,7 @@ namespace SalouWS4Sql.Client
                             throw new SalouException("Invalid Parameter");
 
                         StaticWSHelpers.WriteInt(ms, (int)para[0]);//connID
-                        ((CommandData)para[1]).Write(ms); 
+                        ((CommandData)para[1]).WriteToServer(ms); 
                         StaticWSHelpers.WriteInt(ms, (int)(CommandBehavior)para[2]);
                         StaticWSHelpers.WriteInt(ms, (int)para[3]);//PageSize
                         ms.WriteByte((byte)((UseSchema)para[4]));//UseSchema                                            
@@ -217,7 +217,7 @@ namespace SalouWS4Sql.Client
                         if (para.Length != 2)
                             throw new SalouException("Invalid Parameter");
                         StaticWSHelpers.WriteInt(ms, (int)para[0]);//connID
-                        ((CommandData)para[1]).Write(ms);
+                        ((CommandData)para[1]).WriteToServer(ms);
                     }
                     break;
 
@@ -246,9 +246,9 @@ namespace SalouWS4Sql.Client
         /// <returns></returns>
         /// <exception cref="SalouServerException"></exception>
         /// <exception cref="SalouException"></exception>
-        private (object?, Type) ProcessReturn(WsCallID sid, SalouReturnType rty, object[] para, byte[] baIn)
+        private (object? value, Type netType) ProcessReturn(WsCallID sid, SalouReturnType rty, object[] para, byte[] baIn)
         {
-            SalouLog.LoggerFkt(LogLevel.Trace, () => $"ProcessReturn Data {rty} Param Length: {para.Length} Data Length: {baIn.Length}");
+            Salou.LoggerFkt(LogLevel.Trace, () => $"ProcessReturn Data {rty} Param Length: {para.Length} Data Length: {baIn.Length}");
             var span = new Span<byte>(baIn);
             switch (rty)
             {
@@ -266,15 +266,14 @@ namespace SalouWS4Sql.Client
                     return (StaticWSHelpers.ReadString(ref span), typeof(string));
                 case SalouReturnType.DBNull:
                     return (DBNull.Value, typeof(DBNull));
-                case SalouReturnType.NullableDBType:
-                    var ty = new NullableDBType(ref span);
-                    return StaticWSHelpers.ReadNullableDbTypeData(ty, ref span,null);
+                case SalouReturnType.NullableSalouType:
+                    return StaticWSHelpers.ClientRecievedSalouType(ref span);
                 case SalouReturnType.Nothing:
                     return default;
                 case SalouReturnType.Exception:
                     throw new SalouServerException(StaticWSHelpers.ReadString(ref span) ?? string.Empty);
                 case SalouReturnType.CommandParameters:
-                    return (((CommandData)para[1]).Read(ref span));
+                    return (((CommandData)para[1]).ReadReturnFromServer(ref span));
                 case SalouReturnType.ReaderStart:
                 case SalouReturnType.ReaderContinue:
                     return (baIn, typeof(byte[]));

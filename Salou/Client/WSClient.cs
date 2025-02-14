@@ -58,16 +58,16 @@ namespace SalouWS4Sql.Client
         internal WSClient(ILogger? logger, Uri uri, int timeout)
         {
             _logger = logger;
-            SalouLog.Logger = logger;
+            Salou.Logger = logger;
             _uri = uri;
             _timeout = timeout;
             _semaphore = new SemaphoreSlim(1);
             _webSocket = new ClientWebSocket();
-            foreach (var item in SalouConnection.Salou_RequestHeaders)
+            foreach (var item in Salou.RequestHeaders)
                 _webSocket.Options.SetRequestHeader(item.Key,item.Value);
             _ct = new CancellationToken();
 
-            SalouLog.LoggerFkt(LogLevel.Information, () => $"WSClient started {uri}");
+            Salou.LoggerFkt(LogLevel.Information, () => $"WSClient started {uri}");
         }
 
         /// <summary>
@@ -83,7 +83,7 @@ namespace SalouWS4Sql.Client
                     await _webSocket.ConnectAsync(_uri, _ct);
                 });//Timeout was not a good idea here - blocks inner semaphore even in finally 
 
-                SalouLog.LoggerFkt(LogLevel.Information, () => $"WSClient opened");
+                Salou.LoggerFkt(LogLevel.Information, () => $"WSClient opened");
             }
         }
 
@@ -100,7 +100,7 @@ namespace SalouWS4Sql.Client
                     await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", _ct);
                 });
 
-                SalouLog.LoggerFkt(LogLevel.Information, () => $"WSClient closed");
+                Salou.LoggerFkt(LogLevel.Information, () => $"WSClient closed");
             }
         }
         /// <summary>
@@ -118,7 +118,7 @@ namespace SalouWS4Sql.Client
             }
             catch (Exception ex)
             {
-                SalouLog.LoggerFkt(LogLevel.Error, () => $"{ex.Message} Error in ESClient", ex);
+                Salou.LoggerFkt(LogLevel.Error, () => $"{ex.Message} Error in ESClient", ex);
             }
             finally
             {
@@ -138,7 +138,7 @@ namespace SalouWS4Sql.Client
 
             _webSocket.Dispose();
 
-            SalouLog.LoggerFkt(LogLevel.Information, () => $"WSClient disposed");
+            Salou.LoggerFkt(LogLevel.Information, () => $"WSClient disposed");
         }
     }
 }

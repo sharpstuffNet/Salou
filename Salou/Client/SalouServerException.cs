@@ -23,7 +23,7 @@ namespace SalouWS4Sql.Client
         /// </summary>
         /// <param name="message">message</param>
         public SalouServerException(string message) : base(message) {
-            SalouLog.LoggerFkt(LogLevel.Debug, () => $"SalouServerException {message}");
+            Salou.LoggerFkt(LogLevel.Debug, () => $"SalouServerException {message}");
         }
         /// <summary>
         /// Constructor with message and inner exception
@@ -31,7 +31,7 @@ namespace SalouWS4Sql.Client
         /// <param name="message">message</param>
         /// <param name="innerException">inner exception</param>
         public SalouServerException(string message, Exception innerException) : base(message, innerException) {
-            SalouLog.LoggerFkt(LogLevel.Debug, () => $"SalouServerException {message}", innerException);
+            Salou.LoggerFkt(LogLevel.Debug, () => $"SalouServerException {message}", innerException);
         }
     }
 }
