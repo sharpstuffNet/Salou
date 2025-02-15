@@ -503,6 +503,9 @@ namespace SalouWS4Sql.Helpers
                 case SalouType.Time:
                     WriteLong(ms, ((TimeOnly)obj).Ticks);
                     break;
+                case SalouType.TimeSpan:
+                    WriteLong(ms, ((TimeSpan)obj).Ticks);
+                    break;
                 //case SalouType.UInt16:
                 //    ba2 = new byte[sizeof(UInt16)];
                 //    BinaryPrimitives.WriteUInt16LittleEndian(new Span<byte>(ba2), (UInt16)obj);

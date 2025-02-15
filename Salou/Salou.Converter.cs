@@ -67,7 +67,7 @@ namespace SalouWS4Sql
                     case DbType.Decimal:
                         return (o, dt.Value, SalouType.Decimal);
                     case DbType.Date:
-                        return (o, dt.Value, SalouType.Date);
+                        //return (o, dt.Value, SalouType.Date);
                     case DbType.DateTime2:
                     case DbType.DateTime:
                         return (o, dt.Value, SalouType.DateTime);
@@ -89,7 +89,7 @@ namespace SalouWS4Sql
                     case DbType.Single:
                         return (o, dt.Value, SalouType.Single);
                     case DbType.Time:
-                        return (o, dt.Value, SalouType.Time);
+                        return (o, dt.Value, SalouType.TimeSpan);
                     case DbType.DateTimeOffset:
                         return (o, dt.Value, SalouType.DateTimeOffset);
                     case DbType.Xml:
@@ -118,7 +118,7 @@ namespace SalouWS4Sql
                     case SalouType.Decimal:
                         return (o, DbType.Decimal, st.Value);
                     case SalouType.Date:
-                        return (o, DbType.Date, st.Value);
+                        //return (o, DbType.Date, st.Value);
                     case SalouType.DateTime:
                         return (o, DbType.DateTime, st.Value);
                     case SalouType.Double:
@@ -136,6 +136,8 @@ namespace SalouWS4Sql
                     case SalouType.Single:
                         return (o, DbType.Single, st.Value);
                     case SalouType.Time:
+                        return (o, DbType.Time, st.Value);
+                    case SalouType.TimeSpan:
                         return (o, DbType.Time, st.Value);
                     case SalouType.DateTimeOffset:
                         return (o, DbType.DateTimeOffset, st.Value);
@@ -268,7 +270,7 @@ namespace SalouWS4Sql
                     case DbType.Decimal:
                         return (o, dt.Value, SalouType.Decimal);
                     case DbType.Date:
-                        return (o, dt.Value, SalouType.Date);
+                        //return (o, dt.Value, SalouType.Date);
                     case DbType.DateTime2:
                     case DbType.DateTime:
                         return (o, dt.Value, SalouType.DateTime);
@@ -290,7 +292,7 @@ namespace SalouWS4Sql
                     case DbType.Single:
                         return (o, dt.Value, SalouType.Single);
                     case DbType.Time:
-                        return (o, dt.Value, SalouType.Time);
+                        return (o, dt.Value, SalouType.TimeSpan);
                     case DbType.DateTimeOffset:
                         return (o, dt.Value, SalouType.DateTimeOffset);
                     case DbType.Xml:
@@ -318,7 +320,7 @@ namespace SalouWS4Sql
                     case SalouType.Decimal:
                         return (o, DbType.Decimal, st.Value);
                     case SalouType.Date:
-                        return (o, DbType.Date, st.Value);
+                        //return (o, DbType.Date, st.Value);
                     case SalouType.DateTime:
                         return (o, DbType.DateTime, st.Value);
                     case SalouType.Double:
@@ -336,6 +338,8 @@ namespace SalouWS4Sql
                     case SalouType.Single:
                         return (o, DbType.Single, st.Value);
                     case SalouType.Time:
+                        return (o, DbType.Time, st.Value);
+                    case SalouType.TimeSpan:
                         return (o, DbType.Time, st.Value);
                     case SalouType.DateTimeOffset:
                         return (o, DbType.DateTimeOffset, st.Value);
@@ -378,7 +382,7 @@ namespace SalouWS4Sql
                 case SalouType.Decimal:
                     return (o, d, st);
                 case SalouType.Date:
-                    return (o, DbType.Date, st);
+                    //return (o, DbType.Date, st);
                 case SalouType.DateTime:
                     return (o, d, st);
                 case SalouType.Double:
@@ -405,6 +409,8 @@ namespace SalouWS4Sql
                 case SalouType.Single:
                     return (o, DbType.Single, st);
                 case SalouType.Time:
+                    return (o, DbType.Time, st);
+                case SalouType.TimeSpan:
                     return (o, DbType.Time, st);
                 case SalouType.DateTimeOffset:
                     return (o, DbType.DateTimeOffset, st);
@@ -435,7 +441,8 @@ namespace SalouWS4Sql
             else if (type == typeof(Guid)) return DbType.Guid;
             else if (type == typeof(DateTime)) return DbType.DateTime;
             else if (type == typeof(XmlDocument)) return DbType.Xml;
-            else if (type == typeof(DateOnly)) return DbType.Date;
+            else if (type == typeof(DateOnly)) return DbType.DateTime;
+            //else if (type == typeof(DateOnly)) return DbType.Date;
             else if (type == typeof(DateTimeOffset)) return DbType.DateTimeOffset;
             else if (type == typeof(TimeSpan)) return DbType.Time;
             else if (type == typeof(DBNull)) return DbType.Object;
@@ -470,7 +477,8 @@ namespace SalouWS4Sql
                 DbType.DateTime2 => typeof(DateTime),
                 DbType.DateTime => typeof(DateTime),
                 DbType.Xml => typeof(XmlDocument),
-                DbType.Date => typeof(DateOnly),
+                DbType.Date => typeof(DateTime),
+                // DbType.Date => typeof(DateOnly),
                 DbType.DateTimeOffset => typeof(DateTimeOffset),
                 DbType.Time => typeof(TimeSpan),
                 DbType.Object => typeof(DBNull),

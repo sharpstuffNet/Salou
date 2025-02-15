@@ -9,17 +9,17 @@
     <AssemblyName>net.sharpstuff.salou.ws4sql</AssemblyName>
     <Company>sharpstuff.net</Company>
     <Description>use a WebSocket for a SQLServer Connection</Description>
-    <Copyright>horstsstuff@sharpstuff.net</Copyright>
+    <Copyright>1@sharpstuffNet</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <IncludeSymbols>True</IncludeSymbols>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageProjectUrl>https://github.com/horstsstuff/Salou</PackageProjectUrl>
     <RepositoryUrl>https://github.com/horstsstuff/Salou</RepositoryUrl>
     <PackageId>net.sharpstuff.salou.ws4sql</PackageId>
-    <Version>1.2.0.0</Version>
-    <Authors>horstsstuff@sharpstuff.net</Authors>
-    <FileVersion>1.2.0.0</FileVersion>
-    <AssemblyVersion>1.2.0.0</AssemblyVersion>
+    <Version>1.2.0.1</Version>
+    <Authors>1@sharpstuff.net</Authors>
+    <FileVersion>1.2.0.1</FileVersion>
+    <AssemblyVersion>1.2.0.1</AssemblyVersion>
   </PropertyGroup>
 
   <ItemGroup>
