@@ -61,6 +61,8 @@ namespace SalouWS4Sql
     /// <returns>value and types</returns>
     public delegate (object? value, DbType dbType, SalouType salouType) RecivedFromClientConverterDelegate(object? o, DbType d, SalouType st);
 
+    public delegate byte[] CompressDecompressDelegate(byte[] data);
+
     /// <summary>
     /// Salou Configuration
     /// </summary>
@@ -91,6 +93,10 @@ namespace SalouWS4Sql
         /// The Used RecivedFromClientConverter
         /// </summary>
         public static RecivedFromClientConverterDelegate RecivedFromClientConverter { get; set; } = RecivedFromClientConverterFkt;
+
+        public static CompressDecompressDelegate? Compress { get; set; } = null;
+
+        public static CompressDecompressDelegate? DeCompress { get; set; } = null;
 
         /// <summary>
         /// Default Page Size for the DataReader

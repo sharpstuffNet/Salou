@@ -49,6 +49,8 @@ namespace SalouWS4Sql.Client
         /// Logger
         /// </summary>
         ILogger? _logger;
+        internal static int ClientCallID = 0;
+
         /// <summary>
         /// Constructor for WSClient
         /// </summary>
@@ -124,6 +126,24 @@ namespace SalouWS4Sql.Client
             {
                 _semaphore.Release();
             }
+        }
+        private T? DOASyncSerialized<T>(Func<object?,Task<T>> act, object o)
+        {
+            _semaphore.Wait();
+            try
+            {
+                return Salou48.Helpers.AsyncHelper.RunSync<T>(act,o);
+                //act().Wait();
+            }
+            catch (Exception ex)
+            {
+                Salou.LoggerFkt(LogLevel.Error, () => $"{ex.Message} Error in ESClient", ex);
+            }
+            finally
+            {
+                _semaphore.Release();
+            }
+            return default;
         }
         /// <summary>
         /// Dispose the Websocket

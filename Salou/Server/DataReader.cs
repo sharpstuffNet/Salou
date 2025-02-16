@@ -53,7 +53,7 @@ namespace SalouWS4Sql.Server
         /// <param name="behave">CommandBehavior</param>
         /// <param name="sid">WsCallID</param>
         /// <param name="useSchema">UseSchema</param>
-        public DataReader(DbCommand cmd, CommandBehavior behave, WsCallID sid,int wsrid, UseSchema useSchema)
+        public DataReader(DbCommand cmd, CommandBehavior behave, int sid,int wsrid, UseSchema useSchema)
         {
             _useSchema = useSchema;
             _cmd = cmd;

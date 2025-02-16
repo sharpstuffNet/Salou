@@ -127,13 +127,12 @@ namespace SalouWS4Sql.Server
                 while (recivedState == StaticWSHelpers.WsState.OK)
                 {
                     //Data per request
-                    byte[] baOut;
                     var baIn = Array.Empty<byte>();
                     SalouReturnType rty = SalouReturnType.Nothing;
                     Span<byte> span;
                     int len;
                     SalouRequestType? reqToDo = null;
-                    WsCallID? sid = null;
+                    int? sid = null;
 
                     //Recive Header
                     recivedState = await StaticWSHelpers.WSReciveFull(_ws, baHead, false);
@@ -155,11 +154,16 @@ namespace SalouWS4Sql.Server
 
                         Salou.LoggerFkt(LogLevel.Debug, () => $"WSR {_WSRID} Recieved Data Expected:{len} Recived: {baIn.Length} Call# {sid}");
 
+                        if(Salou.DeCompress!= null)
+                            baIn = Salou.DeCompress(baIn);
+
                         //Check length and Closed
                         if (recivedState == StaticWSHelpers.WsState.Closed || recivedState == StaticWSHelpers.WsState.Closing)
                             break;
                     }
+
                     //***prepare send
+                    byte[] baOut;
                     //Check if we have enough Data
                     if (recivedState == StaticWSHelpers.WsState.Error || reqToDo == null || sid == null)// && closedStatus == null
                     {
@@ -167,7 +171,6 @@ namespace SalouWS4Sql.Server
                         {
                             Salou.LoggerFkt(LogLevel.Warning, () => $"WSR {_WSRID} Not Enough Data {reqToDo} Call#{sid}");
 
-                            ms.Write(StaticWSHelpers.StartBaEmpty);//Space for Header
                             StaticWSHelpers.WriteString(ms, $"Not Enough Data {reqToDo}");
                             rty = SalouReturnType.Exception;
                             baOut = ms.ToArray();
@@ -179,29 +182,34 @@ namespace SalouWS4Sql.Server
                         //Prepare Data to be send
                         using (var ms = new MemoryStream())
                         {
-                            ms.Write(StaticWSHelpers.StartBaEmpty);//Space for Header
-
                             //*Parse the Data and do work
                             rty = await ProcessRequest(reqToDo.Value, sid.Value, baIn, ms);
 
                             baIn = Array.Empty<byte>();//Free Memory
                             baOut = ms.ToArray();
                         }
-                        Salou.LoggerFkt(LogLevel.Debug, () => $"WSR {_WSRID} Send Data {rty} Size:{baOut.Length - StaticWSHelpers.SizeOfHead} Call# {sid}");
                     }
 
+                    if (Salou.Compress != null)
+                        baOut = Salou.Compress(baOut);
+
                     // Add Header
-                    span = new Span<byte>(baOut);
-                    BinaryPrimitives.WriteInt32LittleEndian(span, Math.Max(baOut.Length - StaticWSHelpers.SizeOfHead, 0));//cant' ref in Async
+                    var baHeadO=new byte[StaticWSHelpers.SizeOfHead];
+                    span = new Span<byte>(baHeadO);
+                    BinaryPrimitives.WriteInt32LittleEndian(span, baOut.Length);//cant' ref in Async
                     span = span.Slice(StaticWSHelpers.SizeOfInt);
                     span[0] = (byte)rty; span = span.Slice(1);
                     BinaryPrimitives.WriteInt32LittleEndian(span, sid == null ? int.MinValue : (int)sid);
 
-                    Salou.LoggerFkt(LogLevel.Information, () => $"WSR {_WSRID} Answer {reqToDo} Call# {sid} Return:{rty} Len: {baOut.Length - StaticWSHelpers.SizeOfHead}");
+                    Salou.LoggerFkt(LogLevel.Information, () => $"WSR {_WSRID} Answer {reqToDo} Call# {sid} Return:{rty} Len: {baOut.Length}");
 
                     //Send
                     if (_ws.State == WebSocketState.Open)
-                        await _ws.SendAsync(baOut, WebSocketMessageType.Binary, true, CancellationToken.None);
+                    {
+                        await _ws.SendAsync(baHeadO, WebSocketMessageType.Binary, baOut.Length==0, CancellationToken.None);
+                        if(baOut.Length > 0)
+                            await _ws.SendAsync(baOut, WebSocketMessageType.Binary, true, CancellationToken.None);
+                    }
                     //Could Close after ... so
                     if (_ws.State != WebSocketState.Open)
                         break;
@@ -239,7 +247,7 @@ namespace SalouWS4Sql.Server
         /// <param name="msOut">MemoryStream outgoing Data</param>
         /// <returns>TAsk SalouReturnType</returns>
         /// <exception cref="Exception"></exception>
-        private async Task<SalouReturnType> ProcessRequest(SalouRequestType reqToDo, WsCallID sid, byte[] baIn, MemoryStream msOut)
+        private async Task<SalouReturnType> ProcessRequest(SalouRequestType reqToDo, int sid, byte[] baIn, MemoryStream msOut)
         {
             DbCommand? cmd = null;
             var spanIn = new Span<byte>(baIn);

@@ -25,6 +25,7 @@ namespace Salou48.Helpers
     /// </summary>
     public static class Net48Extensions
     {
+#nullable enable
 #if NETFX48
         /// <summary>
         /// Recive a message from the Websocket
@@ -201,6 +202,7 @@ namespace Salou48.Helpers
     /// <remarks>Thenks to deleted User in https://www.reddit.com/r/dotnet/comments/yiacng/what_is_the_best_approach_to_call_asynchronous/?rdt=52024</remarks>
     public static class AsyncHelper
     {
+#nullable enable
         private static readonly TaskFactory _taskFactory = new
             TaskFactory(CancellationToken.None,
                         TaskCreationOptions.None,
@@ -213,6 +215,13 @@ namespace Salou48.Helpers
                 .Unwrap()
                 .GetAwaiter()
                 .GetResult();
+
+        public static T RunSync<T>(Func<object?,Task<T>> func,object state, CancellationToken cancellationToken = default(CancellationToken))
+             => _taskFactory
+            .StartNew(func,state, cancellationToken)
+            .Unwrap()
+            .GetAwaiter()
+            .GetResult();
 
         public static void RunSync(Func<Task> func, CancellationToken cancellationToken = default(CancellationToken))
             => _taskFactory
