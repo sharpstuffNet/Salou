@@ -169,9 +169,6 @@
     <Compile Include="..\Salou\Helpers\StaticWSHelpers.cs">
       <Link>StaticWSHelpers.cs</Link>
     </Compile>
-    <Compile Include="..\Salou\Helpers\WsCallID.cs">
-      <Link>WsCallID.cs</Link>
-    </Compile>
     <Compile Include="..\Salou\Salou.Converter.cs">
       <Link>Salou.Converter.cs</Link>
     </Compile>
