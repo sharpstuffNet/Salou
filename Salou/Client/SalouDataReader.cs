@@ -119,7 +119,7 @@ namespace SalouWS4Sql.Client
                         lock (_mres1!)
                             _mres1.Set();
                     }
-                    catch(ThreadAbortException)
+                    catch(ThreadInterruptedException)
                     {
                         //Ignore
                     }
@@ -392,6 +392,7 @@ namespace SalouWS4Sql.Client
         public override void Close()
         {
             _threadStop = true;
+            _thread?.Interrupt();
 
             if (_mres1 != null)
             {

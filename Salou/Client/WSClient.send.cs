@@ -81,18 +81,18 @@ namespace SalouWS4Sql.Client
                 baOut = ms.ToArray();
             }
 
-            if (Salou.Compress != null)
+            if (Salou.Compress != null && baOut!=null)
                 baOut = Salou.Compress(baOut);
 
             //Add Header
             var baHeadO = new byte[StaticWSHelpers.SizeOfHead];
             var span = new Span<byte>(baHeadO);
-            BinaryPrimitives.WriteInt32LittleEndian(span, baOut.Length);//cant' ref in Async
+            BinaryPrimitives.WriteInt32LittleEndian(span, baOut?.Length ?? 0);//cant' ref in Async
             span = span.Slice(StaticWSHelpers.SizeOfInt);
             span[0] = (byte)reqToDo; span = span.Slice(1);
             BinaryPrimitives.WriteInt32LittleEndian(span, clientCallID);
 
-            Salou.LoggerFkt(LogLevel.Information, () => $"Send Header {reqToDo} {clientCallID} len: {baOut.Length}");
+            Salou.LoggerFkt(LogLevel.Information, () => $"Send Header {reqToDo} {clientCallID} len: {baOut?.Length ?? 0}");
 
             ////Only 1 request at a time
             //var (rty, baIn) = DOASyncSerialized<(SalouReturnType rty, byte[] baIn)>(async () =>
@@ -106,7 +106,7 @@ namespace SalouWS4Sql.Client
                 new CallState()
                 {
                     clientCallID = clientCallID,
-                    baOut = baOut,
+                    baOut = baOut ?? Array.Empty<byte>(),
                     baHeadO = baHeadO,
                     rty = SalouReturnType.Nothing,
                     baIn = Array.Empty<byte>(),
@@ -114,11 +114,11 @@ namespace SalouWS4Sql.Client
                     reqToDo= reqToDo
                 });
 
-            if (Salou.Decompress != null)
+            if (Salou.Decompress != null && stateO.baIn!=null)
                 stateO.baIn = Salou.Decompress(stateO.baIn);
 
             //Process Data
-            return ProcessReturn(stateO.clientCallID, stateO.rty, stateO.para, stateO.baIn);
+            return ProcessReturn(stateO.clientCallID, stateO.rty, stateO.para, stateO.baIn ?? Array.Empty<byte>());
         }
         internal struct CallState
         {

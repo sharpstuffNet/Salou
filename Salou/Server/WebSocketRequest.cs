@@ -154,7 +154,7 @@ namespace SalouWS4Sql.Server
 
                         Salou.LoggerFkt(LogLevel.Debug, () => $"WSR {_WSRID} Recieved Data Expected:{len} Recived: {baIn.Length} Call# {sid}");
 
-                        if(Salou.Decompress!= null)
+                        if(Salou.Decompress!= null && baIn!=null)
                             baIn = Salou.Decompress(baIn);
 
                         //Check length and Closed
@@ -183,31 +183,31 @@ namespace SalouWS4Sql.Server
                         using (var ms = new MemoryStream())
                         {
                             //*Parse the Data and do work
-                            rty = await ProcessRequest(reqToDo.Value, sid.Value, baIn, ms);
+                            rty = await ProcessRequest(reqToDo.Value, sid.Value, baIn ?? Array.Empty<byte>(), ms);
 
                             baIn = Array.Empty<byte>();//Free Memory
                             baOut = ms.ToArray();
                         }
                     }
 
-                    if (Salou.Compress != null)
+                    if (Salou.Compress != null && baOut!=null)
                         baOut = Salou.Compress(baOut);
 
                     // Add Header
                     var baHeadO=new byte[StaticWSHelpers.SizeOfHead];
                     span = new Span<byte>(baHeadO);
-                    BinaryPrimitives.WriteInt32LittleEndian(span, baOut.Length);//cant' ref in Async
+                    BinaryPrimitives.WriteInt32LittleEndian(span, baOut?.Length ?? 0);//cant' ref in Async
                     span = span.Slice(StaticWSHelpers.SizeOfInt);
                     span[0] = (byte)rty; span = span.Slice(1);
                     BinaryPrimitives.WriteInt32LittleEndian(span, sid == null ? int.MinValue : (int)sid);
 
-                    Salou.LoggerFkt(LogLevel.Information, () => $"WSR {_WSRID} Answer {reqToDo} Call# {sid} Return:{rty} Len: {baOut.Length}");
+                    Salou.LoggerFkt(LogLevel.Information, () => $"WSR {_WSRID} Answer {reqToDo} Call# {sid} Return:{rty} Len: {baOut?.Length ?? 0}");
 
                     //Send
                     if (_ws.State == WebSocketState.Open)
                     {
-                        await _ws.SendAsync(baHeadO, WebSocketMessageType.Binary, baOut.Length==0, CancellationToken.None);
-                        if(baOut.Length > 0)
+                        await _ws.SendAsync(baHeadO, WebSocketMessageType.Binary, baOut?.Length==0, CancellationToken.None);
+                        if(baOut?.Length > 0)
                             await _ws.SendAsync(baOut, WebSocketMessageType.Binary, true, CancellationToken.None);
                     }
                     //Could Close after ... so
