@@ -88,6 +88,10 @@ namespace SalouWS4Sql.Client
         /// Manual Reset Event for sync Reding between Threads
         /// </summary>
         ManualResetEventSlim? _mres1;
+        /// <summary>
+        /// Signal to Stop the Thread
+        /// </summary>
+        bool _threadStop=false;
 
         /// <summary>
         /// Create a SalouDataReader
@@ -103,15 +107,22 @@ namespace SalouWS4Sql.Client
                 _mres1 = new ManualResetEventSlim(false);
                 _thread = new Thread(() =>
                 {
-                    while (LoadMoreData())
+                    try
                     {
-                        //Signal the Main Thread so if it is waiting for data
+                        while (!_threadStop && LoadMoreData())
+                        {
+                            //Signal the Main Thread so if it is waiting for data
+                            lock (_mres1!)
+                                _mres1.Set();
+                            Thread.Sleep(1);
+                        }
                         lock (_mres1!)
                             _mres1.Set();
-                        Thread.Sleep(1);
                     }
-                    lock (_mres1!)
-                        _mres1.Set();
+                    catch(ThreadAbortException)
+                    {
+                        //Ignore
+                    }
                 });
             }
 
@@ -380,6 +391,14 @@ namespace SalouWS4Sql.Client
         /// <inheritdoc />
         public override void Close()
         {
+            _threadStop = true;
+
+            if (_mres1 != null)
+            {
+                lock(_mres1)
+                    _mres1.Set();
+            }
+
             if (_data == null)
                 throw new SalouException("No Data");
 
@@ -392,6 +411,8 @@ namespace SalouWS4Sql.Client
         public new void Dispose()
         {
             Close();
+            _mres1?.Dispose();
+
             base.Dispose();
         }
 #else
@@ -399,6 +420,8 @@ namespace SalouWS4Sql.Client
         public async override ValueTask DisposeAsync()
         {
             Close();
+            _mres1?.Dispose();
+
             await base.DisposeAsync(); ;
         }
 #endif
