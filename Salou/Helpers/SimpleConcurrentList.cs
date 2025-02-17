@@ -13,7 +13,8 @@ namespace SalouWS4Sql.Helpers
         /// <summary>
         /// Data in a List
         /// </summary>
-        List<T> _dict = new List<T>();
+        List<T> _list = new List<T>();
+
         /// <summary>
         /// Get the enumerator
         /// </summary>
@@ -21,18 +22,33 @@ namespace SalouWS4Sql.Helpers
         public IEnumerator<T> GetEnumerator()
         {
             T[] arr;
-            lock (_dict)
-                arr = _dict.ToArray();
+            lock (_list)
+                arr = _list.ToArray();
             return ((IEnumerable<T>)arr).GetEnumerator();
         }
+
+        /// <summary>
+        /// Get an element by index
+        /// </summary>
+        /// <param name="index">index</param>
+        /// <returns>element</returns>
+        public T this[int index]
+        {
+            get
+            {
+                lock (_list)
+                    return _list[index];
+            }
+        }
+
         /// <summary>
         /// remove an element
         /// </summary>
         /// <param name="ws">element</param>
         internal void Remove(T ws)
         {
-            lock (_dict)
-                _dict.Remove(ws);
+            lock (_list)
+                _list.Remove(ws);
         }
         /// <summary>
         /// Add an element to the list
@@ -40,9 +56,20 @@ namespace SalouWS4Sql.Helpers
         /// <param name="ws">element</param>
         internal void Add(T ws)
         {
-            lock (_dict)
-                _dict.Add(ws);
+            lock (_list)
+                _list.Add(ws);
         }
+
+        /// <summary>
+        /// Count the elements in the list
+        /// </summary>
+        /// <returns>Count</returns>
+        internal int Count()
+        {
+            lock (_list)
+                return _list.Count();
+        }
+
         /// <summary>
         /// Get an element from the list
         /// </summary>

@@ -61,6 +61,11 @@ namespace SalouWS4Sql
     /// <returns>value and types</returns>
     public delegate (object? value, DbType dbType, SalouType salouType) RecivedFromClientConverterDelegate(object? o, DbType d, SalouType st);
 
+    /// <summary>
+    /// Compress Decompress Delegate
+    /// </summary>
+    /// <param name="data">data</param>
+    /// <returns>data</returns>
     public delegate byte[] CompressDecompressDelegate(byte[] data);
 
     /// <summary>
@@ -94,8 +99,14 @@ namespace SalouWS4Sql
         /// </summary>
         public static RecivedFromClientConverterDelegate RecivedFromClientConverter { get; set; } = RecivedFromClientConverterFkt;
 
+        /// <summary>
+        /// The Used Compress Function
+        /// </summary>
         public static CompressDecompressDelegate? Compress { get; set; } = null;
 
+        /// <summary>
+        /// The Used Decompress Function
+        /// </summary>
         public static CompressDecompressDelegate? Decompress { get; set; } = null;
 
         /// <summary>
@@ -119,6 +130,11 @@ namespace SalouWS4Sql
         /// <remarks>force close using Close on an not opend connection after it is open</remarks>
         public static bool LeaveClientOpen { get; set; } = true;
 
+        /// <summary>
+        /// Use MultiThreaded Reading inside the Client to get the next result
+        /// </summary>
+        /// <remarks>default to false -- needs more testing</remarks>
+        public static bool RedaerReadMultiThreaded { get; set; } = false;
         /// <summary>
         /// Sets The Default Logger Function
         /// </summary>

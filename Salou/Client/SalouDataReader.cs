@@ -9,6 +9,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using System.Threading;
+
 #if NETFX48
 
 #else
@@ -41,7 +43,7 @@ namespace SalouWS4Sql.Client
         /// <summary>
         /// All Rows
         /// </summary>
-        List<object?[]>? _rows;
+        SimpleConcurrentList<object?[]>? _rows;
         /// <summary>
         /// Current Row Index
         /// </summary>
@@ -75,6 +77,19 @@ namespace SalouWS4Sql.Client
         /// </summary>
         bool _tryedNextResults = false;
         /// <summary>
+        /// Read Multi Threaded
+        /// </summary>
+        bool _readMultiThreaded = false;
+        /// <summary>
+        /// Thread for Reading
+        /// </summary>
+        Thread? _thread;
+        /// <summary>
+        /// Manual Reset Event for sync Reding between Threads
+        /// </summary>
+        ManualResetEventSlim? _mres1;
+
+        /// <summary>
         /// Create a SalouDataReader
         /// </summary>
         /// <param name="con">Connection</param>
@@ -82,6 +97,24 @@ namespace SalouWS4Sql.Client
         /// <param name="ba">Initial Data</param>
         public SalouDataReader(SalouConnection con, int pageSize, byte[] ba)
         {
+            _readMultiThreaded = Salou.RedaerReadMultiThreaded;
+            if (_readMultiThreaded)
+            {
+                _mres1 = new ManualResetEventSlim(false);
+                _thread = new Thread(() =>
+                {
+                    while (LoadMoreData())
+                    {
+                        //Signal the Main Thread so if it is waiting for data
+                        lock (_mres1!)
+                            _mres1.Set();
+                        Thread.Sleep(1);
+                    }
+                    lock (_mres1!)
+                        _mres1.Set();
+                });
+            }
+
             _con = con;
             PageSize = pageSize;
             _lastPageSize = PageSize;
@@ -97,7 +130,7 @@ namespace SalouWS4Sql.Client
         {
             _schemaColumns = null;
             _colNames = null;
-            _rows = new List<object?[]>();
+            _rows = new SimpleConcurrentList<object?[]>();
             _nomoreData = false;
             _lastPageSize = 0;
 
@@ -132,12 +165,14 @@ namespace SalouWS4Sql.Client
 
             _curRowIdx = -1;
             _curRow = Array.Empty<object?[]>();
+
+            _thread?.Start();
         }
 
         /// <inheritdoc />
         public override bool NextResult()
         {
-            if (_tryedNextResults || _data == null ||_con==null)
+            if (_tryedNextResults || _data == null || _con == null)
                 return false;
 
             _lastPageSize = PageSize;
@@ -158,19 +193,19 @@ namespace SalouWS4Sql.Client
         /// <returns>success</returns>
         bool LoadMoreData()
         {
-            if (_nomoreData || _data == null || _con==null)
+            if (_nomoreData || _data == null || _con == null)
                 return false;
 
-            var rows = _rows?.Count;
+            var rows = _rows?.Count();
 
             _lastPageSize = PageSize;
             var ba = _con.WsClient!.Send<byte[]>(SalouRequestType.ContinueReader, null, _data.ID, _lastPageSize);
             LoadData(new Span<byte>(ba));
 
-            if (rows == _rows?.Count)
+            if (rows == _rows?.Count())
                 _nomoreData = true;
 
-            return rows != _rows?.Count;
+            return rows != _rows?.Count();
         }
 
         /// <summary>
@@ -180,7 +215,7 @@ namespace SalouWS4Sql.Client
         /// <exception cref="SalouException"></exception>
         void LoadData(Span<byte> ba)
         {
-            if(_data == null)
+            if (_data == null)
                 throw new SalouException("No Data");
 
             int i = 0;
@@ -197,6 +232,7 @@ namespace SalouWS4Sql.Client
             if (i < _lastPageSize)
                 _nomoreData = true;
         }
+
 #pragma warning disable CS8603 // Possible null reference return. 
 #pragma warning disable CS8602 // Possible null reference return. 
         /// <inheritdoc />
@@ -220,20 +256,36 @@ namespace SalouWS4Sql.Client
         /// <inheritdoc />
         public override bool Read()
         {
-            if (_curRow == null || _rows==null)
+            if (_curRow == null || _rows == null)
                 throw new SalouException("curRow is null");
 
-            if (_curRowIdx + 1 < _rows.Count)
+            if (_curRowIdx + 1 < _rows.Count())
             {
                 _curRow = _rows[++_curRowIdx];
                 return true;
             }
-            else
+            else if(!_nomoreData)
             {
-                if (LoadMoreData())
+                if(_readMultiThreaded)
                 {
-                    _curRow = _rows[++_curRowIdx];
-                    return true;
+                    //Wait for the Reading Thread
+                    lock (_mres1!)
+                    {
+                        if(!_nomoreData)//safe Side
+                            _mres1.Reset();
+                    }
+                    _mres1.Wait();
+
+                    if (_curRowIdx + 1 < _rows.Count())
+                    {
+                        _curRow = _rows[++_curRowIdx];
+                        return true;
+                    }
+                }
+                else if (LoadMoreData())
+                {
+                        _curRow = _rows[++_curRowIdx];
+                        return true;
                 }
             }
             return false;
@@ -249,7 +301,7 @@ namespace SalouWS4Sql.Client
 #if NETFX48
 
 #else
-  [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.PublicProperties)]
+        [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.PublicProperties)]
 #endif
         /// <inheritdoc />
         public override Type GetFieldType(int ordinal)
@@ -258,7 +310,7 @@ namespace SalouWS4Sql.Client
                 throw new SalouException("curRow is null");
 
             Type? ty = null;
-            if (_data?.SchemaTable != null && _schemaColumns!=null)
+            if (_data?.SchemaTable != null && _schemaColumns != null)
             {
                 var t = (string)_data.SchemaTable.Rows[ordinal][_schemaColumns["DataType"]];
                 ty = Type.GetType(t);
@@ -347,7 +399,7 @@ namespace SalouWS4Sql.Client
         public async override ValueTask DisposeAsync()
         {
             Close();
-            await base.DisposeAsync();;
+            await base.DisposeAsync(); ;
         }
 #endif
 
