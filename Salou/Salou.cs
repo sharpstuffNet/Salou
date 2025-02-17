@@ -96,7 +96,7 @@ namespace SalouWS4Sql
 
         public static CompressDecompressDelegate? Compress { get; set; } = null;
 
-        public static CompressDecompressDelegate? DeCompress { get; set; } = null;
+        public static CompressDecompressDelegate? Decompress { get; set; } = null;
 
         /// <summary>
         /// Default Page Size for the DataReader

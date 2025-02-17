@@ -20,14 +20,18 @@ namespace SalouTest
         /// </summary>
         static SalouConnection? __con;
 
+        /// <summary>
+        /// Test Base Class
+        /// </summary>
+        static TestBase __base = new TestBase();
+
         ///<summary>
         /// Initialize the connection here to test MARS
         ///</summary>
         [ClassInitialize]
         public static void ClassInit(TestContext context)
         {
-            __con = new SalouConnection(new Uri("ws://localhost:5249/ws"), "Test", 120, null);
-            __con.Open();
+            __con = __base.Init();
         }
 
         ///<summary>
@@ -36,8 +40,7 @@ namespace SalouTest
         [ClassCleanup]
         public static void ClassCleanup()
         {
-            __con?.Close();
-            __con?.Dispose();
+            __base.Dispose();
         }
 
         /// <summary>

@@ -12,6 +12,8 @@ using Microsoft.Extensions.Logging;
 using NReco.Logging.File;
 using SalouWS4Sql.Server;
 using System.Data.SqlClient;
+using SalouWS4Sql;
+using BrotliSharpLib;
 
 namespace SalouServer
 {
@@ -49,6 +51,8 @@ namespace SalouServer
 
             __app = builder.Build();
 
+            Salou.Compress = BrotliCompress;
+            Salou.Decompress = BrotliDecompress;
             //!!Create the Salou Server -- next few Lines are Important
             __salouServer = new WebSocketServer(__app.Logger, __app.Configuration, CreateOpenCon);
             
@@ -62,6 +66,9 @@ namespace SalouServer
 
             await __app.RunAsync();
         }
+
+        private static byte[] BrotliDecompress(byte[] data)=> Brotli.DecompressBuffer(data, 0, data.Length);
+        private static byte[] BrotliCompress(byte[] data)=> Brotli.CompressBuffer(data,0, data.Length);
 
         /// <summary>
         /// Create a new Open Connection

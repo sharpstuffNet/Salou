@@ -154,8 +154,8 @@ namespace SalouWS4Sql.Server
 
                         Salou.LoggerFkt(LogLevel.Debug, () => $"WSR {_WSRID} Recieved Data Expected:{len} Recived: {baIn.Length} Call# {sid}");
 
-                        if(Salou.DeCompress!= null)
-                            baIn = Salou.DeCompress(baIn);
+                        if(Salou.Decompress!= null)
+                            baIn = Salou.Decompress(baIn);
 
                         //Check length and Closed
                         if (recivedState == StaticWSHelpers.WsState.Closed || recivedState == StaticWSHelpers.WsState.Closing)

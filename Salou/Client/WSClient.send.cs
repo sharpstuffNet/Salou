@@ -114,8 +114,8 @@ namespace SalouWS4Sql.Client
                     reqToDo= reqToDo
                 });
 
-            if (Salou.DeCompress != null)
-                stateO.baIn = Salou.DeCompress(stateO.baIn);
+            if (Salou.Decompress != null)
+                stateO.baIn = Salou.Decompress(stateO.baIn);
 
             //Process Data
             return ProcessReturn(stateO.clientCallID, stateO.rty, stateO.para, stateO.baIn);

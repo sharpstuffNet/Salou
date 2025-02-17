@@ -20,13 +20,17 @@ namespace SalouTest
         SalouConnection? _con;
 
         /// <summary>
+        /// Test Base Class
+        /// </summary>
+        TestBase _base = new TestBase();
+
+        /// <summary>
         /// Initialize the connection
         /// </summary>
         [TestInitialize]
         public void TestInit()
         {
-            _con = new SalouConnection(new Uri("ws://localhost:5249/ws"),"Test", 120, null);
-            _con.Open();
+            _con = _base.Init();
         }
 
         /// <summary>
@@ -35,8 +39,7 @@ namespace SalouTest
         [TestCleanup]
         public void TestCleanup()
         {
-            _con?.Close();
-            _con?.Dispose();
+            _base.Dispose();
         }
         /// <summary>
         /// scalar test
