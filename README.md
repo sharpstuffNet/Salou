@@ -69,7 +69,23 @@ Use the ClientLib as DbConnection and set the URL to the Server
 ```
 if you cast for example SalouCommand to DbCommand you can set additional propertys like a PageSize for the Reader.
 Some stuff you can also set via Configuration
-            
+      
+## Settings and extendet Faetures
+All Settings and extendet Faetures can be configured via the Static Salou Class
+- Logger timeouts etc
+- RedaerReadMultiThreaded
+- Converters for DataTypes (examples in Salou.Converter.cs)
+- Compression
+
+```csharp
+    ...
+    Salou.Compress = BrotliCompress;
+    Salou.Decompress = BrotliDecompress;
+    ...
+    private static byte[] BrotliDecompress(byte[] data)=> Brotli.DecompressBuffer(data, 0, data.Length);
+    private static byte[] BrotliCompress(byte[] data)=> Brotli.CompressBuffer(data,0, data.Length);
+    ...
+```
            
 # For Testing and a full example
 please checkout mý Fork of ToyStore-Database-Example https://github.com/horstsstuff/ToyStore-Database-Example-Using-WinForms--ADO.NET-in-VB.git 

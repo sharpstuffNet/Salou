@@ -53,6 +53,7 @@ namespace SalouServer
 
             Salou.Compress = BrotliCompress;
             Salou.Decompress = BrotliDecompress;
+
             //!!Create the Salou Server -- next few Lines are Important
             __salouServer = new WebSocketServer(__app.Logger, __app.Configuration, CreateOpenCon);
             
