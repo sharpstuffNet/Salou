@@ -27,7 +27,7 @@ namespace SalouWS4Sql.Server
         /// <summary>
         /// WebSocket Request ID
         /// </summary>
-        public static int WSRID=0;
+        public static int WSRID = 0;
 
         /// <summary>
         /// WebSocket Request ID
@@ -145,16 +145,16 @@ namespace SalouWS4Sql.Server
                         reqToDo = (SalouRequestType)StaticWSHelpers.ReadByte(ref span);
                         sid = StaticWSHelpers.ReadInt(ref span);
 
-                        Salou.LoggerFkt(LogLevel.Information, () => $"WSR {_WSRID} Recieved Header {reqToDo} Call# {sid} len: {len}");
+                        Salou.LoggerFkt(LogLevel.Information, () => $"WSR {_WSRID}: Recieved Header {reqToDo} Call# {sid} len: {len}");
 
                         //Recive Data
                         baIn = new byte[len];
                         if (len > 0)
                             recivedState = await StaticWSHelpers.WSReciveFull(_ws, baIn);
 
-                        Salou.LoggerFkt(LogLevel.Debug, () => $"WSR {_WSRID} Recieved Data Expected:{len} Recived: {baIn.Length} Call# {sid}");
+                        Salou.LoggerFkt(LogLevel.Debug, () => $"WSR {_WSRID}: Recieved Data Expected:{len} Recived: {baIn.Length} Call# {sid}");
 
-                        if(Salou.Decompress!= null && baIn!=null)
+                        if (Salou.Decompress != null && baIn != null)
                             baIn = Salou.Decompress(baIn);
 
                         //Check length and Closed
@@ -169,7 +169,7 @@ namespace SalouWS4Sql.Server
                     {
                         using (var ms = new MemoryStream())
                         {
-                            Salou.LoggerFkt(LogLevel.Warning, () => $"WSR {_WSRID} Not Enough Data {reqToDo} Call#{sid}");
+                            Salou.LoggerFkt(LogLevel.Warning, () => $"WSR {_WSRID}: Not Enough Data {reqToDo} Call#{sid}");
 
                             StaticWSHelpers.WriteString(ms, $"Not Enough Data {reqToDo}");
                             rty = SalouReturnType.Exception;
@@ -190,24 +190,24 @@ namespace SalouWS4Sql.Server
                         }
                     }
 
-                    if (Salou.Compress != null && baOut!=null)
+                    if (Salou.Compress != null && baOut != null)
                         baOut = Salou.Compress(baOut);
 
                     // Add Header
-                    var baHeadO=new byte[StaticWSHelpers.SizeOfHead];
+                    var baHeadO = new byte[StaticWSHelpers.SizeOfHead];
                     span = new Span<byte>(baHeadO);
                     BinaryPrimitives.WriteInt32LittleEndian(span, baOut?.Length ?? 0);//cant' ref in Async
                     span = span.Slice(StaticWSHelpers.SizeOfInt);
                     span[0] = (byte)rty; span = span.Slice(1);
                     BinaryPrimitives.WriteInt32LittleEndian(span, sid == null ? int.MinValue : (int)sid);
 
-                    Salou.LoggerFkt(LogLevel.Information, () => $"WSR {_WSRID} Answer {reqToDo} Call# {sid} Return:{rty} Len: {baOut?.Length ?? 0}");
+                    Salou.LoggerFkt(LogLevel.Information, () => $"WSR {_WSRID}: Answer {reqToDo} Call# {sid} Return:{rty} Len: {baOut?.Length ?? 0}");
 
                     //Send
                     if (_ws.State == WebSocketState.Open)
                     {
-                        await _ws.SendAsync(baHeadO, WebSocketMessageType.Binary, baOut?.Length==0, CancellationToken.None);
-                        if(baOut?.Length > 0)
+                        await _ws.SendAsync(baHeadO, WebSocketMessageType.Binary, baOut?.Length == 0, CancellationToken.None);
+                        if (baOut?.Length > 0)
                             await _ws.SendAsync(baOut, WebSocketMessageType.Binary, true, CancellationToken.None);
                     }
                     //Could Close after ... so
@@ -220,7 +220,7 @@ namespace SalouWS4Sql.Server
                 else if (_ws.State == WebSocketState.Open)
                     await _ws.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None);
 
-                Salou.LoggerFkt(LogLevel.Information, () => $"WSR {_WSRID} WS Closed");
+                Salou.LoggerFkt(LogLevel.Information, () => $"WSR {_WSRID}: WS Closed");
             }
             catch (System.Net.WebSockets.WebSocketException wex)
             {
@@ -265,7 +265,7 @@ namespace SalouWS4Sql.Server
                             await tran.DisposeAsync();
                             return SalouReturnType.Nothing;
                         }
-                        Salou.LoggerFkt(LogLevel.Trace, () => $"WSR {_WSRID}:Transaction is null");
+                        Salou.LoggerFkt(LogLevel.Trace, () => $"WSR {_WSRID}: Transaction is null");
                         StaticWSHelpers.WriteString(msOut, "Transaction is null");
                         return SalouReturnType.Exception;
 
@@ -565,7 +565,7 @@ namespace SalouWS4Sql.Server
                         DataReader? rdr = _allRDR.Get(id);
                         if (rdr == null)
                         {
-                            Salou.LoggerFkt(LogLevel.Trace, () => $"WSR {_WSRID}:Reader not found");
+                            Salou.LoggerFkt(LogLevel.Trace, () => $"WSR {_WSRID}: Reader not found");
                             StaticWSHelpers.WriteString(msOut, "Reader not found");
                             return SalouReturnType.Exception;
                         }
@@ -583,7 +583,7 @@ namespace SalouWS4Sql.Server
                     }
                     catch (Exception ex)
                     {
-                        Salou.LoggerFkt(LogLevel.Error, () => $"WSR {_WSRID}:{ex.Message} Error in EndReader", ex);
+                        Salou.LoggerFkt(LogLevel.Error, () => $"WSR {_WSRID}: {ex.Message} Error in EndReader", ex);
                         StaticWSHelpers.WriteString(msOut, ex.Message);
                         return SalouReturnType.Exception;
                     }
@@ -595,7 +595,7 @@ namespace SalouWS4Sql.Server
                         DataReader? rdr = _allRDR.Get(id);
                         if (rdr == null)
                         {
-                            Salou.LoggerFkt(LogLevel.Trace, () => $"WSR {_WSRID}:Reader not found");
+                            Salou.LoggerFkt(LogLevel.Trace, () => $"WSR {_WSRID}: Reader not found");
                             StaticWSHelpers.WriteString(msOut, "Reader not found");
                             return SalouReturnType.Exception;
                         }
@@ -616,7 +616,7 @@ namespace SalouWS4Sql.Server
                         DataReader? rdr = _allRDR.Get(id);
                         if (rdr == null)
                         {
-                            Salou.LoggerFkt(LogLevel.Trace, () => $"WSR {_WSRID}:Reader not found");
+                            Salou.LoggerFkt(LogLevel.Trace, () => $"WSR {_WSRID}: Reader not found");
                             StaticWSHelpers.WriteString(msOut, "Reader not found");
                             return SalouReturnType.Exception;
                         }
@@ -627,12 +627,12 @@ namespace SalouWS4Sql.Server
                     }
                     catch (Exception ex)
                     {
-                        Salou.LoggerFkt(LogLevel.Error, () => $"WSR {_WSRID}:{ex.Message} Error in ReaderNextResult", ex);
+                        Salou.LoggerFkt(LogLevel.Error, () => $"WSR {_WSRID}: {ex.Message} Error in ReaderNextResult", ex);
                         StaticWSHelpers.WriteString(msOut, ex.Message);
                         return SalouReturnType.Exception;
                     }
                 default:
-                    Salou.LoggerFkt(LogLevel.Error, () => $"WSR {_WSRID}:{reqToDo} unknown");
+                    Salou.LoggerFkt(LogLevel.Error, () => $"WSR {_WSRID}: {reqToDo} unknown");
                     throw new Exception($"SalouReturnType unknown");
             }
         }
@@ -660,14 +660,18 @@ namespace SalouWS4Sql.Server
                 foreach (DbParameter p in outP)
                 {
                     StaticWSHelpers.WriteString(msOut, p.ParameterName);
-                    StaticWSHelpers.ServerWriteSalouType(msOut, p.DbType,null, p.Value);
+                    StaticWSHelpers.ServerWriteSalouType(msOut, p.DbType, null, p.Value);
+                    StaticWSHelpers.WriteInt(msOut,p.Size);
+                    msOut.WriteByte(p.Scale);
+                    msOut.WriteByte(p.Precision);
+                    msOut.WriteByte((byte)(p.IsNullable ? 'T': 'F'));
                 }
 
                 //inner return
                 msOut.WriteByte((byte)returnType);
 
                 if (obj == null || returnType == SalouReturnType.NullableSalouType)
-                    StaticWSHelpers.ServerWriteSalouType(msOut,null, null,obj);
+                    StaticWSHelpers.ServerWriteSalouType(msOut, null, null, obj);
                 else
                     msOut.Write((byte[])obj);
                 return SalouReturnType.CommandParameters;
@@ -676,7 +680,7 @@ namespace SalouWS4Sql.Server
             //No, so just the inner return
             if (obj == null || returnType == SalouReturnType.NullableSalouType)
             {
-                StaticWSHelpers.ServerWriteSalouType(msOut,null,null, obj);
+                StaticWSHelpers.ServerWriteSalouType(msOut, null, null, obj);
                 return SalouReturnType.NullableSalouType;
             }
             else
@@ -709,9 +713,22 @@ namespace SalouWS4Sql.Server
                 var np = cmd.CreateParameter();
                 np.ParameterName = p.ParameterName;
                 np.Value = p.Value;
-                np.DbType = p.DbType;
+
                 np.Direction = p.Direction;
-                np.Size = p.Size;
+
+                if (p.DbYypeSet)
+                    np.DbType = p.DbType;
+                if (p.IsNullableSet)
+                    np.IsNullable = p.IsNullable;
+                if (p.SizeSet)
+                    np.Size = p.Size;
+                if (p.ScaleSet)
+                    np.Scale = p.Scale;
+                if (p.PrecisionSet)
+                    np.Precision = p.Precision;
+
+                //SourceColumn ignored
+                //SourceColumnNullMapping ignored
 
                 cmd.Parameters.Add(np);
             }

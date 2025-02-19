@@ -69,8 +69,7 @@ namespace SalouWS4Sql.Server
         /// </summary>
         /// <param name="state">unused</param>
         private void TiCb(object? state)
-        {
-            Salou.LoggerFkt(LogLevel.Trace, () => "Timer Callback");
+        {            
 
             WebSocketRequest[] lst;
             lock (_allWSS)
@@ -84,6 +83,8 @@ namespace SalouWS4Sql.Server
                     ws.Dispose();
                 }
             }
+
+            Salou.LoggerFkt(LogLevel.Trace, () => $"Timer Callback {lst.Length}->{_allWSS.Count}");
         }
 
         /// <summary>

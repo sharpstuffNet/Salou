@@ -83,7 +83,8 @@ namespace SalouTest
             var cmd = _con.CreateCommand();
             cmd.CommandText = "[dbo].SeaCostumers";
             cmd.CommandType = System.Data.CommandType.StoredProcedure;
-            cmd.Parameters.AddWithValue("@sea", DBNull.Value);
+            //cmd.Parameters.AddWithValue("@sea", DBNull.Value);
+            cmd.Parameters.Add(new SalouParameter() { DbType = System.Data.DbType.String, ParameterName = "@sea", Value=DBNull.Value });
             cmd.Parameters.Add(new SalouParameter() { DbType = System.Data.DbType.Int32, Direction = System.Data.ParameterDirection.Output, ParameterName = "@product_count" });
             cmd.Parameters.Add(new SalouParameter() { DbType = System.Data.DbType.Int32, Direction = System.Data.ParameterDirection.ReturnValue, ParameterName = "@return_value" });
             var x = cmd.ExecuteScalar();

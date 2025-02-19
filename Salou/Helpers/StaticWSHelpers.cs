@@ -1,4 +1,6 @@
-﻿using Salou48.Helpers;
+﻿using Microsoft.AspNetCore.Connections;
+using Microsoft.Extensions.Logging;
+using Salou48.Helpers;
 using SalouWS4Sql.Client;
 using System;
 using System.Buffers.Binary;
@@ -59,35 +61,48 @@ namespace SalouWS4Sql.Helpers
         /// <param name="readRest"></param>
         /// <returns></returns>
         internal static async Task<WsState> WSReciveFull(WebSocket ws, byte[] ba, bool readRest = true)
-        {            
-            WebSocketReceiveResult? wssr = null;
-            int recBytes = 0;
-            while (recBytes < ba.Length)
+        {
+            try
             {
-                if (ws.State!=WebSocketState.Open)
-                    return (ws.State==WebSocketState.CloseReceived ? WsState.Closing : WsState.Closed);
+                WebSocketReceiveResult? wssr = null;
+                int recBytes = 0;
+                while (recBytes < ba.Length)
+                {
+                    if (ws.State != WebSocketState.Open)
+                        return (ws.State == WebSocketState.CloseReceived ? WsState.Closing : WsState.Closed);
 
-                wssr = await ws.ReceiveAsync(new ArraySegment<byte>(ba, recBytes, ba.Length - recBytes), System.Threading.CancellationToken.None);
-                recBytes += wssr.Count;
+                    wssr = await ws.ReceiveAsync(new ArraySegment<byte>(ba, recBytes, ba.Length - recBytes), System.Threading.CancellationToken.None);
+                    recBytes += wssr.Count;
 
-                if (wssr.EndOfMessage)
-                    return (recBytes == ba.Length ? WsState.OK : WsState.Error);
+                    if (wssr.EndOfMessage)
+                        return (recBytes == ba.Length ? WsState.OK : WsState.Error);
 
-                else if (wssr.MessageType == WebSocketMessageType.Close)
-                    return (WsState.Closing);                
+                    else if (wssr.MessageType == WebSocketMessageType.Close)
+                        return (WsState.Closing);
+                }
+                //drop the Rest
+                while (readRest)
+                {
+                    if (ws.State != WebSocketState.Open)
+                        return (ws.State == WebSocketState.CloseReceived ? WsState.Closing : WsState.Closed);
+
+                    byte[] ba2 = new byte[1024];
+                    wssr = await ws.ReceiveAsync(ba2, System.Threading.CancellationToken.None);
+                    if (wssr.EndOfMessage)
+                        break;
+                }
+                return (recBytes == ba.Length ? WsState.OK : WsState.Error);
             }
-            //drop the Rest
-            while (readRest)
+            catch(System.Net.WebSockets.WebSocketException)
             {
-                if (ws.State!=WebSocketState.Open)
-                    return (ws.State == WebSocketState.CloseReceived ? WsState.Closing : WsState.Closed);
-
-                byte[] ba2 = new byte[1024];
-                wssr = await ws.ReceiveAsync(ba2, System.Threading.CancellationToken.None);
-                if (wssr.EndOfMessage)
-                    break;
+                Salou.LoggerFkt(LogLevel.Trace, () => $"ConnectionResetException");
+                return WsState.Error;
             }
-            return (recBytes == ba.Length ? WsState.OK : WsState.Error);
+            catch (ConnectionResetException)
+            {
+                Salou.LoggerFkt(LogLevel.Trace , () => $"ConnectionResetException");
+                return WsState.Error;
+            }
         }
         /// <summary>
         /// Read a string from a Span and move span
@@ -246,7 +261,7 @@ namespace SalouWS4Sql.Helpers
         /// <param name="ms">MemoryStream</param>
         /// <param name="dbType">dbType</param>
         /// <param name="value">value</param>
-        internal static void ClientWriteSalouType(MemoryStream ms, DbType dbType, object? value)
+        internal static void ClientWriteSalouType(MemoryStream ms, DbType? dbType, object? value)
         {
             var (v,d,t) = Salou.SendToServerConverter(value, dbType, null);
             Write(ms,v,d,t);         
