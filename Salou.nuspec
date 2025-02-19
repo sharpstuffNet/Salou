@@ -24,26 +24,29 @@
 				<dependency id="Microsoft.Extensions.Logging.Abstractions" version="9.0.2" />
 			</group>
 			<group targetFramework="net48-client">
-				<dependency id="Microsoft.Bcl.AsyncInterfaces" version="9.0.1"/>
+				<dependency id="Microsoft.Bcl.AsyncInterfaces" version="9.0.2"/>
 				<dependency id="Microsoft.AspNetCore.Connections.Abstraction" version="9.0.2" />
 				<dependency id="Microsoft.AspNetCore.Http.Connections.Common" version="9.0.2"/>
 				<dependency id="Microsoft.Extensions.Configuration" version="9.0.1"/>
-				<dependency id="Microsoft.Extensions.Configuration.Abstractions" version="9.0.1"/>
-				<dependency id="Microsoft.Extensions.Configuration.Binder" version="9.0.1"/>
-				<dependency id="Microsoft.Extensions.DependencyInjection" version="9.0.1"/>
-				<dependency id="Microsoft.Extensions.DependencyInjection.Abstractions" version="9.0.1"/>
+				<dependency id="Microsoft.Extensions.Configuration.Abstractions" version="9.0.2"/>
+				<dependency id="Microsoft.Extensions.Configuration.Binder" version="9.0.2"/>
+				<dependency id="Microsoft.Extensions.DependencyInjection" version="9.0.2"/>
+				<dependency id="Microsoft.Extensions.DependencyInjection.Abstractions" version="9.0.2"/>
 				<dependency id="Microsoft.Extensions.Features" version="9.0.2"/>
-				<dependency id="Microsoft.Extensions.Logging" version="9.0.1"/>
-				<dependency id="Microsoft.Extensions.Logging.Abstractions" version="9.0.1"/>
-				<dependency id="Microsoft.Extensions.Options" version="9.0.1"/>
-				<dependency id="Microsoft.Extensions.Primitives" version="9.0.1"/>
+				<dependency id="Microsoft.Extensions.Logging" version="9.0.2"/>
+				<dependency id="Microsoft.Extensions.Logging.Abstractions" version="9.0.2"/>
+				<dependency id="Microsoft.Extensions.Options" version="9.0.2"/>
+				<dependency id="Microsoft.Extensions.Primitives" version="9.0.2"/>
 				<dependency id="Nullable" version="1.3.1" include="compile"/>
 				<dependency id="Portable.System.DateTimeOnly" version="9.0.0"/>
 				<dependency id="System.Buffers" version="4.6.0"/>
-				<dependency id="System.Diagnostics.DiagnosticSource" version="9.0.1"/>
+				<dependency id="System.Diagnostics.DiagnosticSource" version="9.0.2"/>
+				<dependency id="System.IO.Pipelines" version="9.0.2"/>
 				<dependency id="System.Memory" version="4.6.0"/>
 				<dependency id="System.Numerics.Vectors" version="4.6.0"/>
 				<dependency id="System.Runtime.CompilerServices.Unsafe" version="6.1.0"/>
+				<dependency id="System.Text.Encodings.Web" version="9.0.2"/>
+				<dependency id="System.Text.Json" version="9.0.2"/>
 				<dependency id="System.Threading.Tasks.Extensions" version="4.6.0"/>
 				<dependency id="System.ValueTuple" version="4.5.0"/>
 			</group>
