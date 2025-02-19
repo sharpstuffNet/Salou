@@ -13,14 +13,13 @@ namespace SalouWS4Sql.Client
     [DebuggerDisplay("{ParameterName} {Value}")]
     public class SalouParameter : DbParameter
     {
-#pragma warning disable CS8629 // Nullable value type may be null. -> Supposed to Crash if not set
 
         internal DbType? _dbType = null;
 
         /// <inheritdoc />  
         public override DbType DbType
         {
-            get { return _dbType.Value; }
+            get { return _dbType==null ? default(DbType) : _dbType.Value; }
             set { _dbType = value; }
         }
         internal bool DbYypeSet => _dbType.HasValue;
@@ -32,7 +31,7 @@ namespace SalouWS4Sql.Client
         /// <inheritdoc />        
         public override bool IsNullable
         {
-            get { return _isNullable.Value; }
+            get { return _isNullable==null ? default(bool) : IsNullable; }
             set { _isNullable = value; }
         }
         internal bool IsNullableSet => _isNullable.HasValue;
@@ -58,7 +57,7 @@ namespace SalouWS4Sql.Client
         /// <inheritdoc />        
         public override int Size
         {
-            get { return _size.Value; }
+            get { return _size==null ? default(int) : _size.Value; }
             set { _size = value; }
         }
         internal bool SizeSet => _size.HasValue;
@@ -68,7 +67,7 @@ namespace SalouWS4Sql.Client
         /// <inheritdoc />        
         public override byte Scale
         {
-            get { return _scale.Value; }
+            get { return _scale==null ? default(byte) : _scale.Value; }
             set { _scale = value; }
         }
         internal bool ScaleSet => _size.HasValue;
@@ -78,7 +77,7 @@ namespace SalouWS4Sql.Client
         /// <inheritdoc />        
         public override byte Precision
         {
-            get { return _precision.Value; }
+            get { return _precision==null ? default(byte) : _precision.Value; }
             set { _precision = value; }
         }
         internal bool PrecisionSet => _precision.HasValue;
@@ -89,6 +88,5 @@ namespace SalouWS4Sql.Client
             DbType = DbType.String;
         }
         
-#pragma warning restore CS8629 // Nullable value type may be null
     }
 }
