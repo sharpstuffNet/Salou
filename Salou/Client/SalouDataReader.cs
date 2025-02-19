@@ -160,13 +160,13 @@ namespace SalouWS4Sql.Client
                 var iCol = _schemaColumns["ColumnOrdinal"];
                 _colNames = new Dictionary<string, int>();
                 foreach (DataRow r in _data.SchemaTable.Rows)
-                    _colNames.Add((string)r[nCol], (int)r[iCol]);
+                    _colNames.Add(((string)r[nCol]).ToLowerInvariant(), (int)r[iCol]);
             }
             else if (_data.UseSchema == UseSchema.NamesOnly)
             {
                 _colNames = new Dictionary<string, int>();
                 for (int i = 0; i < _data.ColNames!.Length; i++)
-                    _colNames.Add(_data.ColNames[i], i);
+                    _colNames.Add(_data.ColNames[i].ToLowerInvariant(), i);
             }
 
             //Need Data?
@@ -259,7 +259,7 @@ namespace SalouWS4Sql.Client
         /// <inheritdoc />
         public override object this[int ordinal] => _curRow[ordinal];
         /// <inheritdoc />
-        public override object this[string name] => _colNames == null ? throw new SalouException("No Column Names or Schema Loaded") : _curRow[_colNames[name]];
+        public override object this[string name] => _colNames == null ? throw new SalouException("No Column Names or Schema Loaded") : _curRow[_colNames[name.ToLowerInvariant()]];
         /// <inheritdoc />
         public override DataTable? GetSchemaTable() => _data.SchemaTable == null ? throw new SalouException("No Schema Loaded") : _data.SchemaTable;
 #pragma warning restore CS8602 // Possible null reference return.
@@ -466,7 +466,7 @@ namespace SalouWS4Sql.Client
         /// <inheritdoc />
         public override string GetName(int ordinal) => _colNames == null ? throw new SalouException("No Column Names or Schema Loaded") : _colNames.FirstOrDefault(x => x.Value == ordinal).Key;
         /// <inheritdoc />
-        public override int GetOrdinal(string name) => _colNames == null ? throw new SalouException("No Column Names or Schema Loaded") : _colNames[name];
+        public override int GetOrdinal(string name) => _colNames == null ? throw new SalouException("No Column Names or Schema Loaded") : _colNames[name.ToLowerInvariant()];
         /// <inheritdoc />
         public override string GetString(int ordinal) => (string)_curRow[ordinal];
         /// <inheritdoc />

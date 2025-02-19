@@ -84,7 +84,7 @@ namespace SalouWS4Sql.Server
                 }
             }
 
-            Salou.LoggerFkt(LogLevel.Trace, () => $"Timer Callback {lst.Length}->{_allWSS.Count}");
+            Salou.LoggerFkt(LogLevel.Trace, () => $"Timer Callback {lst?.Length}->{_allWSS?.Count()}");
         }
 
         /// <summary>

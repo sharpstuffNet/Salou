@@ -104,7 +104,7 @@ namespace SalouWS4Sql.Helpers
                 {
                     StaticWSHelpers.WriteString(ms, sp.ParameterName);
                     ms.WriteByte((byte)sp.Direction);
-                    StaticWSHelpers.ClientWriteSalouType(ms, sp.DbYypeSet ? sp.DbType : null, sp.Value);
+                    StaticWSHelpers.ClientWriteSalouType(ms, sp.DbType, sp.Value);//always so fallback to dfault AnsiString
                     StaticWSHelpers.WriteInt(ms, sp.SizeSet ? sp.Size : int.MinValue);
                     ms.WriteByte(sp.ScaleSet ? sp.Scale : byte.MinValue);
                     ms.WriteByte(sp.PrecisionSet ? sp.Precision : byte.MinValue);

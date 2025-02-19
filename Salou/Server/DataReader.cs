@@ -115,7 +115,7 @@ namespace SalouWS4Sql.Server
                             _useSchema
                             );
 
-            Salou.LoggerFkt(LogLevel.Debug, () => $"WSR {_WSRID}: InitDataSet ReaderID: {ID} Fileds: {_reader.FieldCount} Schema: {_useSchema}");
+            Salou.LoggerFkt(LogLevel.Debug, () => $"WSR {_WSRID}: InitDataSet ReaderID: {ID} Fileds: {_reader?.FieldCount} Schema: {_useSchema}");
 
             _data.Write(msOut);
             using (var ms2 = new MemoryStream())

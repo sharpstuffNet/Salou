@@ -152,7 +152,7 @@ namespace SalouWS4Sql.Server
                         if (len > 0)
                             recivedState = await StaticWSHelpers.WSReciveFull(_ws, baIn);
 
-                        Salou.LoggerFkt(LogLevel.Debug, () => $"WSR {_WSRID}: Recieved Data Expected:{len} Recived: {baIn.Length} Call# {sid}");
+                        Salou.LoggerFkt(LogLevel.Debug, () => $"WSR {_WSRID}: Recieved Data Expected:{len} Recived: {baIn?.Length} Call# {sid}");
 
                         if (Salou.Decompress != null && baIn != null)
                             baIn = Salou.Decompress(baIn);
@@ -705,7 +705,7 @@ namespace SalouWS4Sql.Server
             cmd.CommandTimeout = cd.CommandTimeout;
             cmd.CommandType = cd.CommandType;
 
-            Salou.LoggerFkt(LogLevel.Information, () => $"WSR {_WSRID}: PrepareCommand {cd.CommandText}");
+            Salou.LoggerFkt(LogLevel.Information, () => $"WSR {_WSRID}: PrepareCommand {cd?.CommandText}");
             Salou.LoggerFkt(LogLevel.Debug, () => $"In Parameters {cd.Parameters.Count}");
 
             foreach (SalouParameter p in cd.Parameters)

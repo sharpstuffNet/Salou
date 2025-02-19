@@ -11,7 +11,7 @@
 		<projectUrl>https://github.com/sharpstuffNet/Salou</projectUrl>
 		<repository type="git" url="https://github.com/sharpstuffNet/Salou.git"/>
 		<description>use a WebSocket for a SQLServer Connection</description>
-		<releaseNotes>bugfixes around DbParameter details see GitHub - Sorry</releaseNotes>
+		<releaseNotes>improved compatibility with SQLServer classes</releaseNotes>
 		<copyright>sharpstuff.net</copyright>
 		<tags>NET Websocket SQL</tags>
 		<readme>readme.md</readme>

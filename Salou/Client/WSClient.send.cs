@@ -163,7 +163,7 @@ namespace SalouWS4Sql.Client
                 if (len > 0 && _webSocket.State == WebSocketState.Open)
                     wsRecivedState = await StaticWSHelpers.WSReciveFull(_webSocket, stateO.baIn);
 
-                Salou.LoggerFkt(LogLevel.Debug, () => $"Recieved Data. Expexted: {len} Recived: {stateO.baIn.Length} Call# {stateO.clientCallID}");
+                Salou.LoggerFkt(LogLevel.Debug, () => $"Recieved Data. Expexted: {len} Recived: {stateO.baIn?.Length} Call# {stateO.clientCallID}");
             }
 
             if (_webSocket.State == WebSocketState.CloseReceived)
@@ -183,7 +183,7 @@ namespace SalouWS4Sql.Client
         /// <exception cref="SalouException"></exception>
         private void WriteBytesToSend(MemoryStream ms, SalouRequestType tranToDO, object[] para)
         {
-            Salou.LoggerFkt(LogLevel.Trace, () => $"WriteBytesToSend {tranToDO} Param Length: {para.Length}");
+            Salou.LoggerFkt(LogLevel.Trace, () => $"WriteBytesToSend {tranToDO} Param Length: {para?.Length}");
 
             switch (tranToDO)
             {
@@ -290,7 +290,7 @@ namespace SalouWS4Sql.Client
         /// <exception cref="SalouException"></exception>
         private (object? value, Type netType) ProcessReturn(int clientCallID, SalouReturnType rty, object[] para, byte[] baIn)
         {
-            Salou.LoggerFkt(LogLevel.Trace, () => $"ProcessReturn Data {rty} Param Length: {para.Length} Data Length: {baIn.Length}");
+            Salou.LoggerFkt(LogLevel.Trace, () => $"ProcessReturn Data {rty} Param Length: {para?.Length} Data Length: {baIn?.Length}");
             var span = new Span<byte>(baIn);
             switch (rty)
             {
