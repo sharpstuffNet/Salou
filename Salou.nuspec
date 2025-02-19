@@ -2,7 +2,7 @@
 <package>
 	<metadata>
 		<id>net.sharpstuff.salou.ws4sql</id>
-		<version>1.2.1.2</version>
+		<version>1.2.1.3</version>
 		<title>net.sharpstuff.salou.ws4sql</title>
 		<authors>1@sharpstuff.net</authors>
 		<requireLicenseAcceptance>false</requireLicenseAcceptance>
@@ -11,24 +11,28 @@
 		<projectUrl>https://github.com/sharpstuffNet/Salou</projectUrl>
 		<repository type="git" url="https://github.com/sharpstuffNet/Salou.git"/>
 		<description>use a WebSocket for a SQLServer Connection</description>
-		<releaseNotes>bugfixes details see GitHub</releaseNotes>
+		<releaseNotes>bugfixes details see GitHub mainly DbParameter.Length + more Parameter Propertys</releaseNotes>
 		<copyright>sharpstuff.net</copyright>
 		<tags>NET Websocket SQL</tags>
 		<readme>readme.md</readme>
 		<dependencies>
 			<group targetFramework="net8.0">
 				<dependency id="Microsoft.AspNetCore.Http.Abstractions" version="2.3.0" />
-				<dependency id="Microsoft.Extensions.Configuration.Abstractions" version="9.0.1" />
-				<dependency id="Microsoft.Extensions.Configuration.Binder" version="9.0.1" />
-				<dependency id="Microsoft.Extensions.Logging.Abstractions" version="9.0.1" />
+				<dependency id="Microsoft.AspNetCore.Http.Connections.Common" version="9.0.2" />
+				<dependency id="Microsoft.Extensions.Configuration.Abstractions" version="9.0.2" />
+				<dependency id="Microsoft.Extensions.Configuration.Binder" version="9.0.2" />
+				<dependency id="Microsoft.Extensions.Logging.Abstractions" version="9.0.2" />
 			</group>
 			<group targetFramework="net48-client">
 				<dependency id="Microsoft.Bcl.AsyncInterfaces" version="9.0.1"/>
+				<dependency id="Microsoft.AspNetCore.Connections.Abstraction" version="9.0.2" />
+				<dependency id="Microsoft.AspNetCore.Http.Connections.Common" version="9.0.2"/>
 				<dependency id="Microsoft.Extensions.Configuration" version="9.0.1"/>
 				<dependency id="Microsoft.Extensions.Configuration.Abstractions" version="9.0.1"/>
 				<dependency id="Microsoft.Extensions.Configuration.Binder" version="9.0.1"/>
 				<dependency id="Microsoft.Extensions.DependencyInjection" version="9.0.1"/>
 				<dependency id="Microsoft.Extensions.DependencyInjection.Abstractions" version="9.0.1"/>
+				<dependency id="Microsoft.Extensions.Features" version="9.0.2"/>
 				<dependency id="Microsoft.Extensions.Logging" version="9.0.1"/>
 				<dependency id="Microsoft.Extensions.Logging.Abstractions" version="9.0.1"/>
 				<dependency id="Microsoft.Extensions.Options" version="9.0.1"/>
