@@ -105,7 +105,7 @@ namespace SalouWS4Sql.Client
         /// <param name="ba">Initial Data</param>
         public SalouDataReader(SalouConnection con, int pageSize, byte[] ba)
         {
-            _readMultiThreaded = Salou.RedaerReadMultiThreaded;
+            _readMultiThreaded = Salou.ReaderReadMultiThreaded;
             if (_readMultiThreaded)
             {
                 _mres1 = new ManualResetEventSlim(false);
@@ -173,7 +173,8 @@ namespace SalouWS4Sql.Client
                     _colNames.Add(_data.ColNames[i], i);
             }
 
-            _colNamesLI = _colNames!.ToDictionary(x => x.Key.ToLowerInvariant(), x => x.Value);
+            if(_colNames!=null && Salou.ReaderCompareLowerInvariant)
+                _colNamesLI = _colNames.ToDictionary(x => x.Key.ToLowerInvariant(), x => x.Value);
 
             //Need Data?
             _hasRows = _data.HasRows;
@@ -265,7 +266,8 @@ namespace SalouWS4Sql.Client
         /// <inheritdoc />
         public override object this[int ordinal] => _curRow[ordinal];
         /// <inheritdoc />
-        public override object this[string name] => _colNamesLI == null ? throw new SalouException("No Column Names or Schema Loaded") : _curRow[_colNamesLI[name.ToLowerInvariant()]];
+        public override object this[string name] => _colNames == null ? throw new SalouException("No Column Names or Schema Loaded") 
+            : Salou.ReaderCompareLowerInvariant ? _curRow[_colNamesLI[name.ToLowerInvariant()]] : _curRow[_colNames[name]];
         /// <inheritdoc />
         public override DataTable? GetSchemaTable() => _data.SchemaTable == null ? throw new SalouException("No Schema Loaded") : _data.SchemaTable;
 #pragma warning restore CS8602 // Possible null reference return.
@@ -472,7 +474,8 @@ namespace SalouWS4Sql.Client
         /// <inheritdoc />
         public override string GetName(int ordinal) => _colNames == null ? throw new SalouException("No Column Names or Schema Loaded") : _colNames.FirstOrDefault(x => x.Value == ordinal).Key;
         /// <inheritdoc />
-        public override int GetOrdinal(string name) => _colNamesLI == null ? throw new SalouException("No Column Names or Schema Loaded") : _colNamesLI[name.ToLowerInvariant()];
+        public override int GetOrdinal(string name) => _colNames == null ? throw new SalouException("No Column Names or Schema Loaded") 
+            : Salou.ReaderCompareLowerInvariant ? _colNamesLI[name.ToLowerInvariant()] : _colNames[name];
         /// <inheritdoc />
         public override string GetString(int ordinal) => (string)_curRow[ordinal];
         /// <inheritdoc />

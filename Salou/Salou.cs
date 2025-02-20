@@ -134,8 +134,12 @@ namespace SalouWS4Sql
         /// Use MultiThreaded Reading inside the Client to get the next result
         /// </summary>
         /// <remarks>default to false -- needs more testing</remarks>
-        public static bool RedaerReadMultiThreaded { get; set; } = false;
-
+        public static bool ReaderReadMultiThreaded { get; set; } = false;
+        /// <summary>
+        /// Reder Columns use lower invariant to compare
+        /// </summary>
+        /// <remarks>default to false -- needs more testing</remarks>
+        public static bool ReaderCompareLowerInvariant { get; set; } = true;
         /// <summary>
         /// enum for UseParameterType
         /// </summary>
