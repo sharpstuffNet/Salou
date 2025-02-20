@@ -67,9 +67,26 @@ namespace SalouWS4Sql.Helpers
                 var p = new SalouParameter();
                 p.ParameterName = StaticWSHelpers.ReadString(ref span) ?? "";
                 p.Direction = (ParameterDirection)StaticWSHelpers.ReadByte(ref span);
+                var isTySet = (char)StaticWSHelpers.ReadByte(ref span);
                 var data= StaticWSHelpers.ServerRecievedSalouType(ref span);
-                p.DbType = data.dbType;
-                p.Value = data.value;
+                switch (Salou.UseParameterType)
+                {
+                    case Salou.UseParameterTypeEnum.Never:
+                        p.Value = data.value;
+                        break;
+                    case Salou.UseParameterTypeEnum.IfDbParameter:
+                        if (isTySet == 'B') p.DbType = data.dbType;
+                        p.Value = data.value;
+                        break;
+                    case Salou.UseParameterTypeEnum.IfSalouParameterAndSet:
+                        if (isTySet == 'V') p.DbType = data.dbType;
+                        p.Value = data.value;
+                        break;
+                    case Salou.UseParameterTypeEnum.Always:
+                        p.DbType = data.dbType;
+                        p.Value = data.value;
+                        break;
+                }
                 var x = StaticWSHelpers.ReadInt(ref span);
                 if (x != int.MinValue)
                     p.Size = x;
@@ -104,6 +121,7 @@ namespace SalouWS4Sql.Helpers
                 {
                     StaticWSHelpers.WriteString(ms, sp.ParameterName);
                     ms.WriteByte((byte)sp.Direction);
+                    ms.WriteByte((byte)(sp.DbYypeSet ? 'V' : 'D'));
                     StaticWSHelpers.ClientWriteSalouType(ms, sp.DbType, sp.Value);//always so fallback to dfault AnsiString
                     StaticWSHelpers.WriteInt(ms, sp.SizeSet ? sp.Size : int.MinValue);
                     ms.WriteByte(sp.ScaleSet ? sp.Scale : byte.MinValue);
@@ -114,12 +132,31 @@ namespace SalouWS4Sql.Helpers
                 {
                     StaticWSHelpers.WriteString(ms, p.ParameterName);
                     ms.WriteByte((byte)p.Direction);
+                    ms.WriteByte((byte)'B');
                     StaticWSHelpers.ClientWriteSalouType(ms, p.DbType, p.Value);
                     StaticWSHelpers.WriteInt(ms, p.Size);
                     ms.WriteByte(p.Scale);
                     ms.WriteByte(p.Precision);
                     ms.WriteByte((byte)(p.IsNullable ? 'T' : 'F'));
                 }
+            }
+        }
+
+        /// <summary>
+        /// serialize the Out Parameters back to the client
+        /// </summary>
+        /// <param name="msOut">MemoryStream</param>
+        /// <param name="outP">out Parameters</param>
+        internal static void SendOutParametersBackFromServer(MemoryStream msOut, DbParameter[] outP)
+        {
+            foreach (DbParameter p in outP)
+            {
+                StaticWSHelpers.WriteString(msOut, p.ParameterName);
+                StaticWSHelpers.ServerWriteSalouType(msOut, p.DbType, null, p.Value);
+                StaticWSHelpers.WriteInt(msOut, p.Size);
+                msOut.WriteByte(p.Scale);
+                msOut.WriteByte(p.Precision);
+                msOut.WriteByte((byte)(p.IsNullable ? 'T' : 'F'));
             }
         }
 
@@ -140,13 +177,14 @@ namespace SalouWS4Sql.Helpers
                     StaticWSHelpers.DropSalouType(ref span);//Dump and Move On
                 else
                 {
-                    par.Value = StaticWSHelpers.ClientRecievedSalouType(ref span).value; //Type already set
+                    var (val,t) = StaticWSHelpers.ClientRecievedDBType(ref span);
+                    if (Salou.UseOutParameterTypeFromServer && t.HasValue) par.DbType = t.Value;
+                    par.Value = val;
                     par.Size = StaticWSHelpers.ReadInt(ref span);
                     par.Scale= StaticWSHelpers.ReadByte(ref span);
                     par.Precision = StaticWSHelpers.ReadByte(ref span);
                     par.IsNullable = StaticWSHelpers.ReadByte(ref span)=='T';
                 }
-
             }
             var rt = (SalouReturnType)StaticWSHelpers.ReadByte(ref span);
             if (rt == SalouReturnType.NullableSalouType)

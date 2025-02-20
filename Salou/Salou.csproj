@@ -16,10 +16,10 @@
     <PackageProjectUrl>https://github.com/horstsstuff/Salou</PackageProjectUrl>
     <RepositoryUrl>https://github.com/horstsstuff/Salou</RepositoryUrl>
     <PackageId>net.sharpstuff.salou.ws4sql</PackageId>
-    <Version>1.2.1.5</Version>
+    <Version>1.2.2.0</Version>
     <Authors>1@sharpstuff.net</Authors>
-    <FileVersion>1.2.1.5</FileVersion>
-    <AssemblyVersion>1.2.1.5</AssemblyVersion>
+    <FileVersion>1.2.2.0</FileVersion>
+    <AssemblyVersion>1.2.2.0</AssemblyVersion>
   </PropertyGroup>
 
   <ItemGroup>

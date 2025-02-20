@@ -8,6 +8,9 @@ namespace SalouWS4Sql
 {
     public static class Version
     {
-        public static int VERSION_NUMBER = 4;
+        /// <summary>
+        /// Always update if Binary format changes!!!
+        /// </summary>
+        public static int VERSION_NUMBER = 5;
     }
 }

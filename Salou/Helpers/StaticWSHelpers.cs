@@ -238,12 +238,23 @@ namespace SalouWS4Sql.Helpers
         /// Read a Value from a Span and move span
         /// </summary>
         /// <param name="span">Data</param>
-        /// <returns>Value and Types</returns>
+        /// <returns>Value and Type</returns>
         internal static (object? value, Type netType) ClientRecievedSalouType(ref Span<byte> span)
         {
             var ( v,  d,  t) = Read(ref span,true);
             (object? value, DbType? dbType, SalouType salouType, Type ty) = Salou.RecivedFromServerConverter(v, d, t);
             return (value,ty);
+        }
+        /// <summary>
+        /// Read a Value from a Span and move span
+        /// </summary>
+        /// <param name="span">Data</param>
+        /// <returns>Value and DbType</returns>
+        internal static (object? value, DbType? dbType) ClientRecievedDBType(ref Span<byte> span)
+        {
+            var (v, d, t) = Read(ref span, true);
+            (object? value, DbType? dbType, SalouType salouType, Type ty) = Salou.RecivedFromServerConverter(v, d, t);
+            return (value, dbType);
         }
         /// <summary>
         /// Read a Value from a Span and move span, then Drop Value

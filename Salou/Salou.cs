@@ -135,6 +135,40 @@ namespace SalouWS4Sql
         /// </summary>
         /// <remarks>default to false -- needs more testing</remarks>
         public static bool RedaerReadMultiThreaded { get; set; } = false;
+
+        /// <summary>
+        /// enum for UseParameterType
+        /// </summary>
+        [Flags]
+        public enum UseParameterTypeEnum
+        {
+            /// <summary>
+            /// Never send the DbType to the Server
+            /// </summary>
+            Never = 0,
+            /// <summary>
+            /// only if the Parameter is some other DbParameter where we can't see if it is set
+            /// </summary>
+            IfDbParameter = 1,
+            /// <summary>
+            /// If the Parameter is a SalouParameter and the DbType is set
+            /// </summary>
+            IfSalouParameterAndSet = 2,
+            /// <summary>
+            /// Always send the DbType to the Server
+            /// </summary>
+            Always = 3,
+        }
+        /// <summary>
+        /// if we send the DbType to the Server or let the Server infer the DbType
+        /// </summary>
+        public static UseParameterTypeEnum UseParameterType = UseParameterTypeEnum.IfSalouParameterAndSet;
+
+        /// <summary>
+        /// Keep the ParameterType or override it with the Type from the Server
+        /// </summary>
+        public static bool UseOutParameterTypeFromServer { get; set; } = false;
+
         /// <summary>
         /// Sets The Default Logger Function
         /// </summary>

@@ -657,15 +657,7 @@ namespace SalouWS4Sql.Server
                 Salou.LoggerFkt(LogLevel.Debug, () => $"WSR {_WSRID}: Out Parameters {outP.Length}");
 
                 StaticWSHelpers.WriteInt(msOut, outP.Length);
-                foreach (DbParameter p in outP)
-                {
-                    StaticWSHelpers.WriteString(msOut, p.ParameterName);
-                    StaticWSHelpers.ServerWriteSalouType(msOut, p.DbType, null, p.Value);
-                    StaticWSHelpers.WriteInt(msOut,p.Size);
-                    msOut.WriteByte(p.Scale);
-                    msOut.WriteByte(p.Precision);
-                    msOut.WriteByte((byte)(p.IsNullable ? 'T': 'F'));
-                }
+                CommandData.SendOutParametersBackFromServer(msOut, outP);
 
                 //inner return
                 msOut.WriteByte((byte)returnType);
@@ -689,6 +681,8 @@ namespace SalouWS4Sql.Server
                 return returnType;
             }
         }
+
+       
 
         /// <summary>
         /// Prepare a Command
