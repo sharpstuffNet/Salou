@@ -57,7 +57,7 @@ namespace SalouWS4Sql.Helpers
         public CommandData(ref Span<byte> span)
         {
             Parameters = new SalouParameterCollection();
-            CommandText = StaticWSHelpers.ReadString(ref span) ?? "";
+            CommandText = StaticWSHelpers.ReadString(ref span) ?? string.Empty;
             CommandTimeout = StaticWSHelpers.ReadInt(ref span);
             CommandType = (CommandType)StaticWSHelpers.ReadInt(ref span);
             int count = StaticWSHelpers.ReadInt(ref span);
@@ -65,7 +65,7 @@ namespace SalouWS4Sql.Helpers
             for (int i = 0; i < count; i++)
             {
                 var p = new SalouParameter();
-                p.ParameterName = StaticWSHelpers.ReadString(ref span) ?? "";
+                p.ParameterName = StaticWSHelpers.ReadString(ref span) ?? string.Empty;
                 p.Direction = (ParameterDirection)StaticWSHelpers.ReadByte(ref span);
                 var isTySet = (char)StaticWSHelpers.ReadByte(ref span);
                 var data= StaticWSHelpers.ServerRecievedSalouType(ref span);
