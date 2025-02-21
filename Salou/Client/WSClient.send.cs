@@ -148,18 +148,22 @@ namespace SalouWS4Sql.Client
             if (_webSocket.State == WebSocketState.Open)
             {
                 await _webSocket.SendAsync(stateO.baHeadO, WebSocketMessageType.Binary, stateO.baOut.Length == 0, CancellationToken.None);
-                if (stateO.baOut.Length > 0)
+                if (stateO.baOut.Length > 0 && _webSocket.State == WebSocketState.Open)
                     await _webSocket.SendAsync(stateO.baOut, WebSocketMessageType.Binary, true, CancellationToken.None);
             }
 
             stateO.baOut = Array.Empty<byte>();//Free Memory
 
             //Recive Header
+            int reclen = 0;
+            StaticWSHelpers.WsState wsRecivedState= StaticWSHelpers.WsState.OK;
             var baHead = new byte[StaticWSHelpers.SizeOfHead];
-            var wsRecivedState = await StaticWSHelpers.WSReciveFull(_webSocket, baHead, false);
-            if (wsRecivedState == StaticWSHelpers.WsState.OK)
-            {
+            if(_webSocket.State == WebSocketState.Open)
+                (reclen, wsRecivedState) = await StaticWSHelpers.WSReciveFull(_webSocket, baHead, false);
 
+            //Even if its closing we look what the other side wants if we can
+            if (reclen == baHead.Length)
+            {
                 //Process Header
                 var span = new Span<byte>(baHead);
                 int len = StaticWSHelpers.ReadInt(ref span);
@@ -172,10 +176,12 @@ namespace SalouWS4Sql.Client
 
                 //Recive Data
                 stateO.baIn = new byte[len];
-                if (len > 0 && _webSocket.State == WebSocketState.Open)
-                    wsRecivedState = await StaticWSHelpers.WSReciveFull(_webSocket, stateO.baIn);
+                if (len > 0 && wsRecivedState== StaticWSHelpers.WsState.OK && _webSocket.State == WebSocketState.Open)
+                    (reclen, wsRecivedState) = await StaticWSHelpers.WSReciveFull(_webSocket, stateO.baIn);
 
-                Salou.LoggerFkt(LogLevel.Debug, () => $"Recieved Data. Expexted: {len} Recived: {stateO.baIn?.Length} Call# {stateO.clientCallID}");
+                Salou.LoggerFkt(LogLevel.Debug, () => $"Recieved Data. Expexted: {len} Recived: {reclen} Call# {stateO.clientCallID}");
+                if( reclen != len)
+                    throw new SalouException("Invalid Data Length");
             }
 
             if (_webSocket.State == WebSocketState.CloseReceived)

@@ -60,48 +60,49 @@ namespace SalouWS4Sql.Helpers
         /// <param name="ba"></param>
         /// <param name="readRest"></param>
         /// <returns></returns>
-        internal static async Task<WsState> WSReciveFull(WebSocket ws, byte[] ba, bool readRest = true)
+        internal static async Task<(int len,WsState state)> WSReciveFull(WebSocket ws, byte[] ba, bool readRest = true)
         {
+            int recBytes = 0;
+
             try
             {
                 WebSocketReceiveResult? wssr = null;
-                int recBytes = 0;
                 while (recBytes < ba.Length)
                 {
                     if (ws.State != WebSocketState.Open)
-                        return (ws.State == WebSocketState.CloseReceived ? WsState.Closing : WsState.Closed);
+                        return (recBytes, ws.State == WebSocketState.CloseReceived ? WsState.Closing : WsState.Closed);
 
                     wssr = await ws.ReceiveAsync(new ArraySegment<byte>(ba, recBytes, ba.Length - recBytes), System.Threading.CancellationToken.None);
                     recBytes += wssr.Count;
 
                     if (wssr.EndOfMessage)
-                        return (recBytes == ba.Length ? WsState.OK : WsState.Error);
+                        return (recBytes, WsState.OK);
 
                     else if (wssr.MessageType == WebSocketMessageType.Close)
-                        return (WsState.Closing);
+                        return (recBytes,WsState.Closing);
                 }
                 //drop the Rest
                 while (readRest)
                 {
                     if (ws.State != WebSocketState.Open)
-                        return (ws.State == WebSocketState.CloseReceived ? WsState.Closing : WsState.Closed);
+                        return (recBytes, ws.State == WebSocketState.CloseReceived ? WsState.Closing : WsState.Closed);
 
                     byte[] ba2 = new byte[1024];
                     wssr = await ws.ReceiveAsync(ba2, System.Threading.CancellationToken.None);
                     if (wssr.EndOfMessage)
                         break;
                 }
-                return (recBytes == ba.Length ? WsState.OK : WsState.Error);
+                return (recBytes, WsState.OK);
             }
             catch(System.Net.WebSockets.WebSocketException)
             {
                 Salou.LoggerFkt(LogLevel.Trace, () => $"ConnectionResetException");
-                return WsState.Error;
+                return (recBytes, WsState.Error);
             }
             catch (ConnectionResetException)
             {
                 Salou.LoggerFkt(LogLevel.Trace , () => $"ConnectionResetException");
-                return WsState.Error;
+                return (recBytes, WsState.Error);
             }
         }
         /// <summary>

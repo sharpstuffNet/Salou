@@ -130,15 +130,16 @@ namespace SalouWS4Sql.Server
                     var baIn = Array.Empty<byte>();
                     SalouReturnType rty = SalouReturnType.Nothing;
                     Span<byte> span;
-                    int len;
+                    int len = 0;
                     SalouRequestType? reqToDo = null;
                     int? sid = null;
+                    int reclen = 0;
 
                     //Recive Header
-                    recivedState = await StaticWSHelpers.WSReciveFull(_ws, baHead, false);
-                    if (recivedState == StaticWSHelpers.WsState.Closed || recivedState == StaticWSHelpers.WsState.Closing)
-                        break;
-                    if (recivedState == StaticWSHelpers.WsState.OK)
+                    (reclen, recivedState) = await StaticWSHelpers.WSReciveFull(_ws, baHead, false);
+
+                    //Even if its closing we look what the other side wants if we can
+                    if (reclen == baHead.Length)
                     {
                         span = new Span<byte>(baHead);
                         len = StaticWSHelpers.ReadInt(ref span);
@@ -146,37 +147,41 @@ namespace SalouWS4Sql.Server
                         sid = StaticWSHelpers.ReadInt(ref span);
                         bool compressed1 = (StaticWSHelpers.ReadByte(ref span) == 'B');
 
-                        Salou.LoggerFkt(LogLevel.Information, () => $"WSR {_WSRID}: Recieved Header {reqToDo} Call# {sid} len: {len}");
+                        Salou.LoggerFkt(LogLevel.Information, () => $"WSR {_WSRID}: Recieved Header {reqToDo} Call# {sid} len: {reclen}");
+
+                        if (recivedState == StaticWSHelpers.WsState.Closed || recivedState == StaticWSHelpers.WsState.Closing)
+                            break;
 
                         //Recive Data
                         baIn = new byte[len];
-                        if (len > 0)
-                            recivedState = await StaticWSHelpers.WSReciveFull(_ws, baIn);
+                        if (len > 0 && recivedState == WsState.OK && _ws.State == WebSocketState.Open)
+                            (reclen, recivedState) = await StaticWSHelpers.WSReciveFull(_ws, baIn);
 
-                        Salou.LoggerFkt(LogLevel.Debug, () => $"WSR {_WSRID}: Recieved Data Expected:{len} Recived: {baIn?.Length} Call# {sid}");
+                        if (reclen == len)
+                        {
+                            Salou.LoggerFkt(LogLevel.Debug, () => $"WSR {_WSRID}: Recieved Data Expected: {len} Recived: {reclen} Call# {sid}");
 
-                        if (compressed1 && Salou.Decompress != null && baIn != null)
-                            baIn = Salou.Decompress(baIn);
-
-                        //Check length and Closed
-                        if (recivedState == StaticWSHelpers.WsState.Closed || recivedState == StaticWSHelpers.WsState.Closing)
-                            break;
+                            if (compressed1 && Salou.Decompress != null)
+                                baIn = Salou.Decompress(baIn);
+                        }
+                        else
+                            Salou.LoggerFkt(LogLevel.Warning, () => $"WSR {_WSRID}: Recieved Data Expected: {len} Recived: {reclen} Call# {sid}");
                     }
 
                     //***prepare send
                     byte[] baOut;
+
                     //Check if we have enough Data
-                    if (recivedState == StaticWSHelpers.WsState.Error || reqToDo == null || sid == null)// && closedStatus == null
+                    if (reqToDo == null || sid == null || reclen != len)
                     {
                         using (var ms = new MemoryStream())
                         {
-                            Salou.LoggerFkt(LogLevel.Warning, () => $"WSR {_WSRID}: Not Enough Data {reqToDo} Call#{sid}");
+                            Salou.LoggerFkt(LogLevel.Warning, () => $"WSR {_WSRID}: Not Enough Data {reqToDo} Call# {sid}");
 
                             StaticWSHelpers.WriteString(ms, $"Not Enough Data {reqToDo}");
                             rty = SalouReturnType.Exception;
                             baOut = ms.ToArray();
                         }
-                        recivedState = StaticWSHelpers.WsState.OK;
                     }
                     else
                     {
@@ -191,11 +196,14 @@ namespace SalouWS4Sql.Server
                         }
                     }
 
+                    if (recivedState == StaticWSHelpers.WsState.Closed || recivedState == StaticWSHelpers.WsState.Closing || _ws.State != WebSocketState.Open)
+                        break;
+
                     bool compressed = false;
-                    if (Salou.Compress != null && baOut != null && baOut.Length >Salou.Compressionthreshold)
+                    if (Salou.Compress != null && baOut != null && baOut.Length > Salou.Compressionthreshold)
                     {
                         var baOut1 = Salou.Compress(baOut);
-                        if(baOut1.Length < baOut.Length)
+                        if (baOut1.Length < baOut.Length)
                         {
                             baOut = baOut1;
                             compressed = true;
@@ -218,7 +226,7 @@ namespace SalouWS4Sql.Server
                     if (_ws.State == WebSocketState.Open)
                     {
                         await _ws.SendAsync(baHeadO, WebSocketMessageType.Binary, baOut?.Length == 0, CancellationToken.None);
-                        if (baOut?.Length > 0)
+                        if (baOut?.Length > 0 && _ws.State == WebSocketState.Open)
                             await _ws.SendAsync(baOut, WebSocketMessageType.Binary, true, CancellationToken.None);
                     }
                     //Could Close after ... so
@@ -346,7 +354,7 @@ namespace SalouWS4Sql.Server
                         var con = await _wss.CreateOpenCon(constr, db, _ctx);
                         if (con != null && con.State == ConnectionState.Open)
                         {
-                            if(_allCons.Get(sid) != null)
+                            if (_allCons.Get(sid) != null)
                             {
                                 Salou.LoggerFkt(LogLevel.Warning, () => $"WSR {_WSRID}: Connection already open");
                                 StaticWSHelpers.WriteString(msOut, "Connection already open");
@@ -699,7 +707,7 @@ namespace SalouWS4Sql.Server
             }
         }
 
-       
+
 
         /// <summary>
         /// Prepare a Command
