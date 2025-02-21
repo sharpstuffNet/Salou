@@ -196,6 +196,7 @@ namespace Salou48.Helpers
 #endif
     }
 
+    //In this file because it should be replaced with NET9 code in the near Future
     /// <summary>
     /// Async Helper
     /// </summary>

@@ -111,10 +111,11 @@ namespace SalouWS4Sql.Client
         /// <param name="act"></param>
         /// <returns></returns>
         private void DOASyncSerialized(Func<Task> act)
-        {
-            _semaphore.Wait();
+        {            
             try
             {
+                _semaphore.Wait(Salou.ClientSemaphoreWait);
+
                 Salou48.Helpers.AsyncHelper.RunSync(act);
                 //act().Wait();
             }
@@ -127,12 +128,13 @@ namespace SalouWS4Sql.Client
                 _semaphore.Release();
             }
         }
-        private T? DOASyncSerialized<T>(Func<object?,Task<T>> act, object o)
-        {
-            _semaphore.Wait();
+        private T? DOASyncSerialized<T>(Func<object?,Task<T>> act, CancellationToken ct,object o)
+        {            
             try
             {
-                return Salou48.Helpers.AsyncHelper.RunSync<T>(act,o);
+                _semaphore.Wait(Salou.ClientSemaphoreWait);
+
+                return Salou48.Helpers.AsyncHelper.RunSync<T>(act,o,ct);
                 //act().Wait();
             }
             catch (Exception ex)
@@ -157,6 +159,7 @@ namespace SalouWS4Sql.Client
                 });
 
             _webSocket.Dispose();
+            _semaphore.Dispose();
 
             Salou.LoggerFkt(LogLevel.Information, () => $"WSClient disposed");
         }

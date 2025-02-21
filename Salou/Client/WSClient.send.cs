@@ -104,7 +104,14 @@ namespace SalouWS4Sql.Client
             Salou.LoggerFkt(LogLevel.Information, () => $"Send Header {reqToDo} {clientCallID} len: {baOut?.Length ?? 0}");
 
             //Only 1 request at a time
-            CallState stateO = DOASyncSerialized<CallState>((Func<object?,Task<CallState>>)SendInternAsync, 
+            CancellationToken cancellationToken = default(CancellationToken);// new CancellationTokenSource(StaticWSHelpers.WSRequestTimeout).Token;
+            if (Salou.ClientSendReciveTimeout.HasValue)
+            {
+                cancellationToken = new CancellationTokenSource(Salou.ClientSendReciveTimeout.Value).Token;
+                if(Salou.ClientSendReciveTimeoutThrowException)
+                    cancellationToken.Register(() => throw new SalouTimeoutException("Client Send/Revieve Timeout"));
+            }
+            CallState stateO = DOASyncSerialized<CallState>((Func<object?,Task<CallState>>)SendInternAsync, cancellationToken,
                 new CallState()
                 {
                     clientCallID = clientCallID,

@@ -143,6 +143,29 @@ namespace SalouWS4Sql
         /// </summary>
         /// <remarks>default to false -- needs more testing</remarks>
         public static bool ReaderCompareLowerInvariant { get; set; } = true;
+
+        /// <summary>
+        /// Timeout for the Client Semaphore
+        /// </summary>
+        /// <remarks>
+        /// The Client uses a Semaphore to make sure that only one WevService Call is done at a time
+        /// This is to to try sending more data and handle the exception outside of the Client and reconnect
+        /// instead of waiting for the Server to respond and Hang indefinitely
+        /// </remarks>
+        public static int ClientSemaphoreWait { get; set; } = 1000*100;
+        /// <summary>
+        /// Timeout for the Client Send and Recive Task
+        /// </summary>
+        /// <remarks>
+        /// Can be set to stop a hanging Client - Server communication and resend the data, 
+        /// try to stop a Call to the DB, reconnecting etc.
+        /// To Be Used together with the ClientSemaphoreWait and  ClientSendReciveTimeoutThrowException
+        /// </remarks>
+        public static int? ClientSendReciveTimeout { get; set; } = 1000 * 60;
+        /// <summary>
+        /// if the Timeout should throw an Exception
+        /// </summary>
+        public static bool ClientSendReciveTimeoutThrowException { get; set; } = true;
         /// <summary>
         /// enum for UseParameterType
         /// </summary>
