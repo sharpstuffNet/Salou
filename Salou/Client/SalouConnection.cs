@@ -49,9 +49,11 @@ namespace SalouWS4Sql.Client
             var url = cfg.GetValue<string>("Url");
             if (string.IsNullOrEmpty(url))
                 throw new SalouException("Url not found in configuration");
+
             __uri = new Uri(url);
             __timeout = cfg.GetValue<int>("Timeout");
             __constr = cfg.GetValue<string>("Connstr");
+
             Salou.ReadConfiguration(configuration);
         }
 

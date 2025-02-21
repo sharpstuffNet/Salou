@@ -157,6 +157,9 @@
     <Compile Include="..\Salou\Client\SalouServerException.cs">
       <Link>SalouServerException.cs</Link>
     </Compile>
+    <Compile Include="..\Salou\Client\SalouTimeoutException.cs">
+      <Link>SalouTimeoutException.cs</Link>
+    </Compile>
     <Compile Include="..\Salou\Client\SalouTransaction.cs">
       <Link>SalouTransaction.cs</Link>
     </Compile>

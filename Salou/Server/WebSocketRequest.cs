@@ -209,6 +209,7 @@ namespace SalouWS4Sql.Server
                     span = span.Slice(StaticWSHelpers.SizeOfInt);
                     span[0] = (byte)rty; span = span.Slice(1);
                     BinaryPrimitives.WriteInt32LittleEndian(span, sid == null ? int.MinValue : (int)sid);
+                    span = span.Slice(StaticWSHelpers.SizeOfInt);
                     span[0] = (byte)(compressed ? 'B' : 'G'); span = span.Slice(1);
 
                     Salou.LoggerFkt(LogLevel.Information, () => $"WSR {_WSRID}: Answer {reqToDo} Call# {sid} Return:{rty} Len: {baOut?.Length ?? 0}");
@@ -345,6 +346,12 @@ namespace SalouWS4Sql.Server
                         var con = await _wss.CreateOpenCon(constr, db, _ctx);
                         if (con != null && con.State == ConnectionState.Open)
                         {
+                            if(_allCons.Get(sid) != null)
+                            {
+                                Salou.LoggerFkt(LogLevel.Warning, () => $"WSR {_WSRID}: Connection already open");
+                                StaticWSHelpers.WriteString(msOut, "Connection already open");
+                                return SalouReturnType.Exception;
+                            }
                             _allCons.Add(sid, con);
                             StaticWSHelpers.WriteInt(msOut, _WSRID);
                             StaticWSHelpers.WriteInt(msOut, sid);

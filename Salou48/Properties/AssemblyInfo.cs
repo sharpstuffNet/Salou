@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("Salou48")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("Use a WebSocket for a SQLServer Connection. Net4.8 Implementation for Clients")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("sharpstuff.net")]
 [assembly: AssemblyProduct("sharpstuff.net.Salou")]
@@ -29,5 +29,5 @@ using System.Runtime.InteropServices;
 //      Build Number
 //      Revision
 //
-[assembly: AssemblyVersion("1.2.2.2")]
-[assembly: AssemblyFileVersion("1.2.2.2")]
+[assembly: AssemblyVersion("1.3.0.0")]
+[assembly: AssemblyFileVersion("1.3.0.0")]

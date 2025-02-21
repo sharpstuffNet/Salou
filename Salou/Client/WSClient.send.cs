@@ -99,6 +99,7 @@ namespace SalouWS4Sql.Client
             span = span.Slice(StaticWSHelpers.SizeOfInt);
             span[0] = (byte)reqToDo; span = span.Slice(1);
             BinaryPrimitives.WriteInt32LittleEndian(span, clientCallID);
+            span = span.Slice(StaticWSHelpers.SizeOfInt);
             span[0] = (byte)(compressed ? 'B' : 'L'); span = span.Slice(1);
 
             Salou.LoggerFkt(LogLevel.Information, () => $"Send Header {reqToDo} {clientCallID} len: {baOut?.Length ?? 0}");
