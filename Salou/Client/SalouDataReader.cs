@@ -89,13 +89,9 @@ namespace SalouWS4Sql.Client
         /// </summary>
         Thread? _thread;
         /// <summary>
-        /// Manual Reset Event for sync Reding between Threads
-        /// </summary>
-        ManualResetEventSlim? _mres1;
-        /// <summary>
         /// Signal to Stop the Thread
         /// </summary>
-        bool _threadStop=false;
+        bool _threadStop = false;
 
         /// <summary>
         /// Create a SalouDataReader
@@ -107,34 +103,34 @@ namespace SalouWS4Sql.Client
         {
             _readMultiThreaded = Salou.ReaderReadMultiThreaded;
             if (_readMultiThreaded)
-            {
-                _mres1 = new ManualResetEventSlim(false);
-                _thread = new Thread(() =>
-                {
-                    try
-                    {
-                        while (!_threadStop && LoadMoreData())
-                        {
-                            //Signal the Main Thread so if it is waiting for data
-                            lock (_mres1!)
-                                _mres1.Set();
-                            Thread.Sleep(1);
-                        }
-                        lock (_mres1!)
-                            _mres1.Set();
-                    }
-                    catch(ThreadInterruptedException)
-                    {
-                        //Ignore
-                    }
-                });
-            }
+                _thread = new Thread(ThreadLoop);
 
             _con = con;
             PageSize = pageSize;
             _lastPageSize = PageSize;
 
             InitializeCurrentResultSet(ba);
+        }
+
+        private void ThreadLoop()
+        {
+            try
+            {
+                while (!_threadStop)
+                {
+                    bool success = LoadMoreData();
+                    if (!success)
+                        break;
+                }
+            }
+            catch (ThreadInterruptedException)
+            {
+                //Ignore
+            }
+            finally
+            {
+                _threadStop = true;
+            }
         }
 
         /// <summary>
@@ -173,7 +169,7 @@ namespace SalouWS4Sql.Client
                     _colNames.Add(_data.ColNames[i], i);
             }
 
-            if(_colNames!=null && Salou.ReaderCompareLowerInvariant)
+            if (_colNames != null && Salou.ReaderCompareLowerInvariant)
                 _colNamesLI = _colNames.ToDictionary(x => x.Key.ToLowerInvariant(), x => x.Value);
 
             //Need Data?
@@ -266,7 +262,7 @@ namespace SalouWS4Sql.Client
         /// <inheritdoc />
         public override object this[int ordinal] => _curRow[ordinal];
         /// <inheritdoc />
-        public override object this[string name] => _colNames == null ? throw new SalouException("No Column Names or Schema Loaded") 
+        public override object this[string name] => _colNames == null ? throw new SalouException("No Column Names or Schema Loaded")
             : Salou.ReaderCompareLowerInvariant ? _curRow[_colNamesLI[name.ToLowerInvariant()]] : _curRow[_colNames[name]];
         /// <inheritdoc />
         public override DataTable? GetSchemaTable() => _data.SchemaTable == null ? throw new SalouException("No Schema Loaded") : _data.SchemaTable;
@@ -278,33 +274,30 @@ namespace SalouWS4Sql.Client
             if (_curRow == null || _rows == null)
                 throw new SalouException("curRow is null");
 
-            if (_curRowIdx + 1 < _rows.Count())
+            var idxPlus1 = _curRowIdx + 1;
+            if (idxPlus1 < _rows.Count())
             {
                 _curRow = _rows[++_curRowIdx];
                 return true;
             }
-            else if(!_nomoreData)
+            else if (!_nomoreData)
             {
-                if(_readMultiThreaded)
+                if (_readMultiThreaded && _thread?.IsAlive == true)
                 {
-                    //Wait for the Reading Thread
-                    lock (_mres1!)
+                    while(_thread?.IsAlive == true)
                     {
-                        if(!_nomoreData)//safe Side
-                            _mres1.Reset();
-                    }
-                    _mres1.Wait();
-
-                    if (_curRowIdx + 1 < _rows.Count())
-                    {
-                        _curRow = _rows[++_curRowIdx];
-                        return true;
-                    }
+                        if (idxPlus1 < _rows.Count())
+                        {
+                            _curRow = _rows[++_curRowIdx];
+                            return true;
+                        }
+                        Thread.Sleep(50);
+                    }                    
                 }
                 else if (LoadMoreData())
                 {
-                        _curRow = _rows[++_curRowIdx];
-                        return true;
+                    _curRow = _rows[++_curRowIdx];
+                    return true;
                 }
             }
             return false;
@@ -402,12 +395,6 @@ namespace SalouWS4Sql.Client
             _threadStop = true;
             _thread?.Interrupt();
 
-            if (_mres1 != null)
-            {
-                lock(_mres1)
-                    _mres1.Set();
-            }
-
             if (_data == null)
                 throw new SalouException("No Data");
 
@@ -420,7 +407,6 @@ namespace SalouWS4Sql.Client
         public new void Dispose()
         {
             Close();
-            _mres1?.Dispose();
 
             base.Dispose();
         }
@@ -429,7 +415,6 @@ namespace SalouWS4Sql.Client
         public async override ValueTask DisposeAsync()
         {
             Close();
-            _mres1?.Dispose();
 
             await base.DisposeAsync(); ;
         }
@@ -474,7 +459,7 @@ namespace SalouWS4Sql.Client
         /// <inheritdoc />
         public override string GetName(int ordinal) => _colNames == null ? throw new SalouException("No Column Names or Schema Loaded") : _colNames.FirstOrDefault(x => x.Value == ordinal).Key;
         /// <inheritdoc />
-        public override int GetOrdinal(string name) => _colNames == null ? throw new SalouException("No Column Names or Schema Loaded") 
+        public override int GetOrdinal(string name) => _colNames == null ? throw new SalouException("No Column Names or Schema Loaded")
             : Salou.ReaderCompareLowerInvariant ? _colNamesLI[name.ToLowerInvariant()] : _colNames[name];
         /// <inheritdoc />
         public override string GetString(int ordinal) => (string)_curRow[ordinal];
