@@ -11,6 +11,6 @@ namespace SalouWS4Sql
         /// <summary>
         /// Always update if Binary format changes!!!
         /// </summary>
-        public static int VERSION_NUMBER = 5;
+        public static int VERSION_NUMBER = 6;
     }
 }

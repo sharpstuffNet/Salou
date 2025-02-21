@@ -81,8 +81,16 @@ namespace SalouWS4Sql.Client
                 baOut = ms.ToArray();
             }
 
-            if (Salou.Compress != null && baOut!=null)
-                baOut = Salou.Compress(baOut);
+            bool compressed = false;
+            if (Salou.Compress != null && baOut != null && baOut.Length > Salou.Compressionthreshold)
+            {
+                var baOut1 = Salou.Compress(baOut);
+                if (baOut1.Length < baOut.Length)
+                {
+                    baOut = baOut1;
+                    compressed = true;
+                }
+            }
 
             //Add Header
             var baHeadO = new byte[StaticWSHelpers.SizeOfHead];
@@ -91,16 +99,10 @@ namespace SalouWS4Sql.Client
             span = span.Slice(StaticWSHelpers.SizeOfInt);
             span[0] = (byte)reqToDo; span = span.Slice(1);
             BinaryPrimitives.WriteInt32LittleEndian(span, clientCallID);
+            span[0] = (byte)(compressed ? 'B' : 'L'); span = span.Slice(1);
 
             Salou.LoggerFkt(LogLevel.Information, () => $"Send Header {reqToDo} {clientCallID} len: {baOut?.Length ?? 0}");
 
-            ////Only 1 request at a time
-            //var (rty, baIn) = DOASyncSerialized<(SalouReturnType rty, byte[] baIn)>(async () =>
-            //{
-            //    //Send
-            //    return await SendInternAsync(clientCallID, baOut, baHeadO);
-            //    //});
-            //});
             //Only 1 request at a time
             CallState stateO = DOASyncSerialized<CallState>((Func<object?,Task<CallState>>)SendInternAsync, 
                 new CallState()
@@ -114,7 +116,7 @@ namespace SalouWS4Sql.Client
                     reqToDo= reqToDo
                 });
 
-            if (Salou.Decompress != null && stateO.baIn!=null)
+            if (stateO.compressed && Salou.Decompress != null && stateO.baIn!=null)
                 stateO.baIn = Salou.Decompress(stateO.baIn);
 
             //Process Data
@@ -129,6 +131,7 @@ namespace SalouWS4Sql.Client
             internal byte[] baIn;
             internal object[] para;
             internal SalouRequestType reqToDo;
+            internal bool compressed;
         }
         private async Task<CallState> SendInternAsync(object? state)
         {
@@ -154,6 +157,7 @@ namespace SalouWS4Sql.Client
                 int len = StaticWSHelpers.ReadInt(ref span);
                 stateO.rty = (SalouReturnType)StaticWSHelpers.ReadByte(ref span);
                 var id = StaticWSHelpers.ReadInt(ref span);
+                stateO.compressed = (StaticWSHelpers.ReadByte(ref span) == 'B');
 
                 if (id != stateO.clientCallID)
                     throw new SalouException("Invalid ID");

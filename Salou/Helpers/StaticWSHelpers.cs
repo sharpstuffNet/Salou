@@ -36,7 +36,7 @@ namespace SalouWS4Sql.Helpers
         /// <summary>
         /// Size of the Head
         /// </summary>
-        internal static readonly int SizeOfHead = sizeof(int) * 2 + sizeof(byte);
+        internal static readonly int SizeOfHead = sizeof(int) * 2 + 2* sizeof(byte);
         /// <summary>
         /// Head Space
         /// </summary>

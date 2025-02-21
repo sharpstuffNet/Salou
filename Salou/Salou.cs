@@ -67,7 +67,7 @@ namespace SalouWS4Sql
     /// <param name="data">data</param>
     /// <returns>data</returns>
     public delegate byte[] CompressDecompressDelegate(byte[] data);
-
+        
     /// <summary>
     /// Salou Configuration
     /// </summary>
@@ -108,7 +108,10 @@ namespace SalouWS4Sql
         /// The Used Decompress Function
         /// </summary>
         public static CompressDecompressDelegate? Decompress { get; set; } = null;
-
+        /// <summary>
+        /// Start Compression after this threshold
+        /// </summary>
+        public static int Compressionthreshold { get; set; } = 1024;
         /// <summary>
         /// Default Page Size for the DataReader
         /// </summary>

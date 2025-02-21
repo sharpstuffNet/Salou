@@ -144,6 +144,7 @@ namespace SalouWS4Sql.Server
                         len = StaticWSHelpers.ReadInt(ref span);
                         reqToDo = (SalouRequestType)StaticWSHelpers.ReadByte(ref span);
                         sid = StaticWSHelpers.ReadInt(ref span);
+                        bool compressed1 = (StaticWSHelpers.ReadByte(ref span) == 'B');
 
                         Salou.LoggerFkt(LogLevel.Information, () => $"WSR {_WSRID}: Recieved Header {reqToDo} Call# {sid} len: {len}");
 
@@ -154,7 +155,7 @@ namespace SalouWS4Sql.Server
 
                         Salou.LoggerFkt(LogLevel.Debug, () => $"WSR {_WSRID}: Recieved Data Expected:{len} Recived: {baIn?.Length} Call# {sid}");
 
-                        if (Salou.Decompress != null && baIn != null)
+                        if (compressed1 && Salou.Decompress != null && baIn != null)
                             baIn = Salou.Decompress(baIn);
 
                         //Check length and Closed
@@ -190,8 +191,16 @@ namespace SalouWS4Sql.Server
                         }
                     }
 
-                    if (Salou.Compress != null && baOut != null)
-                        baOut = Salou.Compress(baOut);
+                    bool compressed = false;
+                    if (Salou.Compress != null && baOut != null && baOut.Length >Salou.Compressionthreshold)
+                    {
+                        var baOut1 = Salou.Compress(baOut);
+                        if(baOut1.Length < baOut.Length)
+                        {
+                            baOut = baOut1;
+                            compressed = true;
+                        }
+                    }
 
                     // Add Header
                     var baHeadO = new byte[StaticWSHelpers.SizeOfHead];
@@ -200,6 +209,7 @@ namespace SalouWS4Sql.Server
                     span = span.Slice(StaticWSHelpers.SizeOfInt);
                     span[0] = (byte)rty; span = span.Slice(1);
                     BinaryPrimitives.WriteInt32LittleEndian(span, sid == null ? int.MinValue : (int)sid);
+                    span[0] = (byte)(compressed ? 'B' : 'G'); span = span.Slice(1);
 
                     Salou.LoggerFkt(LogLevel.Information, () => $"WSR {_WSRID}: Answer {reqToDo} Call# {sid} Return:{rty} Len: {baOut?.Length ?? 0}");
 
