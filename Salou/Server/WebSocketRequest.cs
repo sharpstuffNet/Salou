@@ -156,6 +156,8 @@ namespace SalouWS4Sql.Server
                         baIn = new byte[len];
                         if (len > 0 && recivedState == WsState.OK && _ws.State == WebSocketState.Open)
                             (reclen, recivedState) = await StaticWSHelpers.WSReciveFull(_ws, baIn);
+                        else
+                            reclen = 0;
 
                         if (reclen == len)
                         {

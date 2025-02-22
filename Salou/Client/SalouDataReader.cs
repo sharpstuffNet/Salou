@@ -127,9 +127,10 @@ namespace SalouWS4Sql.Client
             {
                 //Ignore
             }
-            finally
+            catch (SalouServerException sex)
             {
-                _threadStop = true;
+                if (!(_threadStop && sex.Message.CompareTo("Reader not found", StringComparison.InvariantCultureIgnoreCase) == 0))
+                    throw new SalouServerException(sex.Message, sex);
             }
         }
 
@@ -180,6 +181,7 @@ namespace SalouWS4Sql.Client
             _curRowIdx = -1;
             _curRow = Array.Empty<object?[]>();
 
+            _threadStop = false;
             _thread?.Start();
         }
 
@@ -217,7 +219,10 @@ namespace SalouWS4Sql.Client
             LoadData(new Span<byte>(ba));
 
             if (rows == _rows?.Count())
+            {
+                _threadStop = true;
                 _nomoreData = true;
+            }
 
             return rows != _rows?.Count();
         }
@@ -244,7 +249,10 @@ namespace SalouWS4Sql.Client
                 _rows?.Add(row);
             }
             if (i < _lastPageSize)
+            {
                 _nomoreData = true;
+                _threadStop = true;
+            }
         }
 
 #pragma warning disable CS8603 // Possible null reference return. 
@@ -284,7 +292,7 @@ namespace SalouWS4Sql.Client
             {
                 if (_readMultiThreaded && _thread?.IsAlive == true)
                 {
-                    while(_thread?.IsAlive == true)
+                    while (_thread?.IsAlive == true)
                     {
                         if (idxPlus1 < _rows.Count())
                         {
@@ -292,7 +300,7 @@ namespace SalouWS4Sql.Client
                             return true;
                         }
                         Thread.Sleep(50);
-                    }                    
+                    }
                 }
                 else if (LoadMoreData())
                 {
@@ -393,7 +401,7 @@ namespace SalouWS4Sql.Client
         public override void Close()
         {
             _threadStop = true;
-            _thread?.Interrupt();
+            //_thread?.Interrupt();
 
             if (_data == null)
                 throw new SalouException("No Data");

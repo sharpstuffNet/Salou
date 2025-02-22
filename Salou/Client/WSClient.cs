@@ -59,8 +59,9 @@ namespace SalouWS4Sql.Client
         /// <param name="timeout">timeout</param>
         internal WSClient(ILogger? logger, Uri uri, int timeout)
         {
-            _logger = logger;
-            Salou.Logger = logger;
+            _logger = logger ?? Salou.Logger;
+            if(Salou.Logger == null)
+                Salou.Logger = logger;
             _uri = uri;
             _timeout = timeout;
             _semaphore = new SemaphoreSlim(1);
@@ -70,6 +71,22 @@ namespace SalouWS4Sql.Client
             _ct = new CancellationToken();
 
             Salou.LoggerFkt(LogLevel.Information, () => $"WSClient started {uri}");
+        }
+
+        /// <summary>
+        /// Open the Websocket
+        /// </summary>
+        internal void Reconnect()
+        {
+            if (_webSocket.State != WebSocketState.Open)
+            {
+                //var ct=new CancellationTokenSource(120).Token;   
+                DOASyncSerialized(async () =>
+                {
+                    await _webSocket.ConnectAsync(_uri, _ct);
+                });
+                Salou.LoggerFkt(LogLevel.Information, () => $"WSClient reconnect");
+            }
         }
 
         /// <summary>

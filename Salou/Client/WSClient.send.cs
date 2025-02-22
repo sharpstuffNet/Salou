@@ -38,11 +38,30 @@ namespace SalouWS4Sql.Client
             if (clientCallID == null)
                 clientCallID = Interlocked.Increment(ref ClientCallID);
 
-            var rt = SendIntern(reqType, clientCallID.Value, para);
-            Salou.LoggerFkt(LogLevel.Trace, () => $"WSClient Result {rt}");
-            if (typeof(T) == typeof(object) || rt.netType == typeof(T))
-                return rt.value == null ? default(T) : (T)rt.value;
-            else if (rt.value == null && rt.netType == null)
+            SalouConClosedException? ex1=null;
+            (object? value, Type netType)? rt=null;
+            int i = Math.Max(Salou.AutoReconnectTry, 1);
+            while (i > 0 && (ex1== null || ex1.HappendWhileSending))
+            {
+                try
+                {
+                    rt = SendIntern(reqType, clientCallID.Value, para);
+                    break;
+                }
+                catch (SalouConClosedException ex)
+                {
+                    ex1 = ex;
+                    if (--i > 0)
+                        Reconnect();
+                }
+            }
+            if(rt==null)
+                throw ex1 ?? new SalouException("Invalid Return");
+
+            Salou.LoggerFkt(LogLevel.Trace, () => $"WSClient Result {rt?.netType}");
+            if (typeof(T) == typeof(object) || rt.Value.netType == typeof(T))
+                return rt.Value.value == null ? default(T) : (T)rt.Value.value;
+            else if (rt.Value.value == null && rt.Value.netType == null)
                 return default(T);
             throw new SalouException("Invalid Type");
         }
@@ -56,7 +75,26 @@ namespace SalouWS4Sql.Client
         {
             if (clientCallID == null)
                 clientCallID = Interlocked.Increment(ref ClientCallID);
-            SendIntern(reqType, clientCallID.Value, para);
+
+            SalouConClosedException? ex1 = null;
+            (object? value, Type netType)? rt = null;
+            int i = Math.Max(Salou.AutoReconnectTry, 1);
+            while (i > 0 && (ex1 == null || ex1.HappendWhileSending))
+            {
+                try
+                {
+                    rt = SendIntern(reqType, clientCallID.Value, para);
+                    break;
+                }
+                catch (SalouConClosedException ex)
+                {
+                    ex1 = ex;
+                    if(--i > 0)
+                        Reconnect();
+                }
+            }
+            if (rt == null)
+                throw ex1 ?? new SalouException("Invalid Return");
         }
 
         /// <summary>
@@ -151,6 +189,8 @@ namespace SalouWS4Sql.Client
                 if (stateO.baOut.Length > 0 && _webSocket.State == WebSocketState.Open)
                     await _webSocket.SendAsync(stateO.baOut, WebSocketMessageType.Binary, true, CancellationToken.None);
             }
+            if(_webSocket.State != WebSocketState.Open)
+                throw new SalouConClosedException("{_webSocket.State}",true);
 
             stateO.baOut = Array.Empty<byte>();//Free Memory
 
@@ -160,6 +200,8 @@ namespace SalouWS4Sql.Client
             var baHead = new byte[StaticWSHelpers.SizeOfHead];
             if(_webSocket.State == WebSocketState.Open)
                 (reclen, wsRecivedState) = await StaticWSHelpers.WSReciveFull(_webSocket, baHead, false);
+            else
+                throw new SalouConClosedException("{_webSocket.State}",false);
 
             //Even if its closing we look what the other side wants if we can
             if (reclen == baHead.Length)
@@ -176,18 +218,24 @@ namespace SalouWS4Sql.Client
 
                 //Recive Data
                 stateO.baIn = new byte[len];
-                if (len > 0 && wsRecivedState== StaticWSHelpers.WsState.OK && _webSocket.State == WebSocketState.Open)
+                if (len > 0 && wsRecivedState == StaticWSHelpers.WsState.OK && _webSocket.State == WebSocketState.Open)
                     (reclen, wsRecivedState) = await StaticWSHelpers.WSReciveFull(_webSocket, stateO.baIn);
+                else
+                    reclen = 0;
 
                 Salou.LoggerFkt(LogLevel.Debug, () => $"Recieved Data. Expexted: {len} Recived: {reclen} Call# {stateO.clientCallID}");
-                if( reclen != len)
+                if (reclen != len)
+                {
+                    if (_webSocket.State != WebSocketState.Open)
+                        throw new SalouConClosedException("{_webSocket.State}",false);
                     throw new SalouException("Invalid Data Length");
+                }
             }
 
             if (_webSocket.State == WebSocketState.CloseReceived)
                 try { _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Close", CancellationToken.None).Wait(); } catch { }//ignore
             if (_webSocket.State != WebSocketState.Open)
-                throw new SalouConClosedException("Connection Closed");
+                throw new SalouConClosedException("Connection Closed",false);
 
             return stateO;
         }

@@ -198,6 +198,12 @@ namespace SalouWS4Sql
         /// Keep the ParameterType or override it with the Type from the Server
         /// </summary>
         public static bool UseOutParameterTypeFromServer { get; set; } = false;
+        /// <summary>
+        /// if the connection is closed sending a statement retry to connect
+        /// NOT used during recieving as the Call to the DB may already be send
+        /// retry if >1
+        /// </summary>
+        public static int AutoReconnectTry { get; set; } = 0;
 
         /// <summary>
         /// Sets The Default Logger Function
