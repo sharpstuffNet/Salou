@@ -129,7 +129,7 @@ namespace SalouWS4Sql.Client
             }
             catch (SalouServerException sex)
             {
-                if (!(_threadStop && sex.Message.CompareTo("Reader not found", StringComparison.InvariantCultureIgnoreCase) == 0))
+                if (!(_threadStop && sex.Message == SalouConst.READER_NOT_FOUND))//.CompareTo("Reader not found", StringComparison.InvariantCultureIgnoreCase) == 0))
                     throw new SalouServerException(sex.Message, sex);
             }
         }

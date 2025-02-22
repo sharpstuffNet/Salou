@@ -147,7 +147,7 @@ namespace SalouWS4Sql.Server
                         sid = StaticWSHelpers.ReadInt(ref span);
                         bool compressed1 = (StaticWSHelpers.ReadByte(ref span) == 'B');
 
-                        Salou.LoggerFkt(LogLevel.Information, () => $"WSR {_WSRID}: Recieved Header {reqToDo} Call# {sid} len: {reclen}");
+                        Salou.LoggerFkt(LogLevel.Information, () => $"WSR {_WSRID} Call# {sid}: Recieved Header {reqToDo} len: {reclen}");
 
                         if (recivedState == StaticWSHelpers.WsState.Closed || recivedState == StaticWSHelpers.WsState.Closing)
                             break;
@@ -161,13 +161,13 @@ namespace SalouWS4Sql.Server
 
                         if (reclen == len)
                         {
-                            Salou.LoggerFkt(LogLevel.Debug, () => $"WSR {_WSRID}: Recieved Data Expected: {len} Recived: {reclen} Call# {sid}");
+                            Salou.LoggerFkt(LogLevel.Debug, () => $"WSR {_WSRID} Call# {sid}: Recieved Data Expected: {len} Recived: {reclen}");
 
                             if (compressed1 && Salou.Decompress != null)
                                 baIn = Salou.Decompress(baIn);
                         }
                         else
-                            Salou.LoggerFkt(LogLevel.Warning, () => $"WSR {_WSRID}: Recieved Data Expected: {len} Recived: {reclen} Call# {sid}");
+                            Salou.LoggerFkt(LogLevel.Warning, () => $"WSR {_WSRID} Call# {sid}: Recieved Data Expected: {len} Recived: {reclen}");
                     }
 
                     //***prepare send
@@ -178,9 +178,9 @@ namespace SalouWS4Sql.Server
                     {
                         using (var ms = new MemoryStream())
                         {
-                            Salou.LoggerFkt(LogLevel.Warning, () => $"WSR {_WSRID}: Not Enough Data {reqToDo} Call# {sid}");
+                            Salou.LoggerFkt(LogLevel.Warning, () => $"WSR {_WSRID} Call# {sid}: {SalouConst.NOT_ENOUGH_DATA} {reqToDo}");
 
-                            StaticWSHelpers.WriteString(ms, $"Not Enough Data {reqToDo}");
+                            StaticWSHelpers.WriteString(ms, $"{SalouConst.NOT_ENOUGH_DATA} {reqToDo}");
                             rty = SalouReturnType.Exception;
                             baOut = ms.ToArray();
                         }
@@ -222,7 +222,7 @@ namespace SalouWS4Sql.Server
                     span = span.Slice(StaticWSHelpers.SizeOfInt);
                     span[0] = (byte)(compressed ? 'B' : 'G'); span = span.Slice(1);
 
-                    Salou.LoggerFkt(LogLevel.Information, () => $"WSR {_WSRID}: Answer {reqToDo} Call# {sid} Return:{rty} Len: {baOut?.Length ?? 0}");
+                    Salou.LoggerFkt(LogLevel.Information, () => $"WSR {_WSRID} Call# {sid}: Answer {reqToDo} Return:{rty} Len: {baOut?.Length ?? 0}");
 
                     //Send
                     if (_ws.State == WebSocketState.Open)
@@ -287,7 +287,7 @@ namespace SalouWS4Sql.Server
                             return SalouReturnType.Nothing;
                         }
                         Salou.LoggerFkt(LogLevel.Trace, () => $"WSR {_WSRID}: Transaction is null");
-                        StaticWSHelpers.WriteString(msOut, "Transaction is null");
+                        StaticWSHelpers.WriteString(msOut, SalouConst.TRANSACTION_IS_NULL);
                         return SalouReturnType.Exception;
 
                     }
@@ -310,7 +310,7 @@ namespace SalouWS4Sql.Server
                             return SalouReturnType.Nothing;
                         }
                         Salou.LoggerFkt(LogLevel.Trace, () => $"WSR {_WSRID}: Transaction is null");
-                        StaticWSHelpers.WriteString(msOut, "Transaction is null");
+                        StaticWSHelpers.WriteString(msOut, SalouConst.TRANSACTION_IS_NULL);
                         return SalouReturnType.Exception;
                     }
                     catch (Exception ex)
@@ -332,7 +332,7 @@ namespace SalouWS4Sql.Server
                             return SalouReturnType.Nothing;
                         }
                         Salou.LoggerFkt(LogLevel.Trace, () => $"WSR {_WSRID}: Command is null");
-                        StaticWSHelpers.WriteString(msOut, "Command is null");
+                        StaticWSHelpers.WriteString(msOut, SalouConst.COMMAND_IS_NULL);
                         return SalouReturnType.Exception;
                     }
                     catch (Exception ex)
@@ -359,7 +359,7 @@ namespace SalouWS4Sql.Server
                             if (_allCons.Get(sid) != null)
                             {
                                 Salou.LoggerFkt(LogLevel.Warning, () => $"WSR {_WSRID}: Connection already open");
-                                StaticWSHelpers.WriteString(msOut, "Connection already open");
+                                StaticWSHelpers.WriteString(msOut, SalouConst.CONNECTION_ALREADY_OPEN);
                                 return SalouReturnType.Exception;
                             }
                             _allCons.Add(sid, con);
@@ -391,7 +391,7 @@ namespace SalouWS4Sql.Server
                             return SalouReturnType.Nothing;
                         }
                         Salou.LoggerFkt(LogLevel.Trace, () => $"WSR {_WSRID}: Connection is null");
-                        StaticWSHelpers.WriteString(msOut, "Connection or DBName is null");
+                        StaticWSHelpers.WriteString(msOut, SalouConst.CONNECTION_OR_DBNAME_IS_NULL);
                         return SalouReturnType.Exception;
                     }
                     catch (Exception ex)
@@ -426,7 +426,7 @@ namespace SalouWS4Sql.Server
                             return SalouReturnType.Nothing;
                         }
                         Salou.LoggerFkt(LogLevel.Trace, () => $"WSR {_WSRID}: Connection is null");
-                        StaticWSHelpers.WriteString(msOut, "Connection is null");
+                        StaticWSHelpers.WriteString(msOut, SalouConst.CONNECTION_IS_NULL);
                         return SalouReturnType.Exception;
                     }
                     catch (Exception ex)
@@ -448,7 +448,7 @@ namespace SalouWS4Sql.Server
                             return SalouReturnType.Nothing;
                         }
                         Salou.LoggerFkt(LogLevel.Trace, () => $"WSR  {_WSRID} : Connection is null");
-                        StaticWSHelpers.WriteString(msOut, "Connection is null");
+                        StaticWSHelpers.WriteString(msOut, SalouConst.CONNECTION_IS_NULL);
                         return SalouReturnType.Exception;
                     }
                     catch (Exception ex)
@@ -469,7 +469,7 @@ namespace SalouWS4Sql.Server
                             return SalouReturnType.String;
                         }
                         Salou.LoggerFkt(LogLevel.Trace, () => $"WSR  {_WSRID} : Connection is null");
-                        StaticWSHelpers.WriteString(msOut, "Connection is null");
+                        StaticWSHelpers.WriteString(msOut, SalouConst.CONNECTION_IS_NULL);
                         return SalouReturnType.Exception;
                     }
                     catch (Exception ex)
@@ -496,7 +496,7 @@ namespace SalouWS4Sql.Server
                                 return PostCommand(cmd, msOut, SalouReturnType.Integer, baOut);
                             }
                             Salou.LoggerFkt(LogLevel.Trace, () => $"WSR  {_WSRID} : Connection is null");
-                            StaticWSHelpers.WriteString(msOut, "Connection is null");
+                            StaticWSHelpers.WriteString(msOut, SalouConst.CONNECTION_IS_NULL);
                             return SalouReturnType.Exception;
                         }
                         catch (Exception ex)
@@ -530,7 +530,7 @@ namespace SalouWS4Sql.Server
                             return PostCommand(cmd, msOut, SalouReturnType.NullableSalouType, obj);
                         }
                         Salou.LoggerFkt(LogLevel.Trace, () => $"WSR {_WSRID}: Connection is null");
-                        StaticWSHelpers.WriteString(msOut, "Connection is null");
+                        StaticWSHelpers.WriteString(msOut, SalouConst.CONNECTION_IS_NULL);
                         return SalouReturnType.Exception;
                     }
                     catch (Exception ex)
@@ -576,7 +576,7 @@ namespace SalouWS4Sql.Server
                             return PostCommand(cmd, msOut, SalouReturnType.ReaderStart, ba3);
                         }
                         Salou.LoggerFkt(LogLevel.Trace, () => $"WSR {_WSRID}: Connection is null");
-                        StaticWSHelpers.WriteString(msOut, "Connection is null");
+                        StaticWSHelpers.WriteString(msOut, SalouConst.CONNECTION_IS_NULL);
                         return SalouReturnType.Exception;
                     }
                     catch (Exception ex)
@@ -593,7 +593,7 @@ namespace SalouWS4Sql.Server
                         if (rdr == null)
                         {
                             Salou.LoggerFkt(LogLevel.Trace, () => $"WSR {_WSRID}: Reader not found");
-                            StaticWSHelpers.WriteString(msOut, "Reader not found");
+                            StaticWSHelpers.WriteString(msOut, SalouConst.READER_NOT_FOUND);
                             return SalouReturnType.Exception;
                         }
                         //End the Reader
@@ -623,7 +623,7 @@ namespace SalouWS4Sql.Server
                         if (rdr == null)
                         {
                             Salou.LoggerFkt(LogLevel.Trace, () => $"WSR {_WSRID}: Reader not found");
-                            StaticWSHelpers.WriteString(msOut, "Reader not found");
+                            StaticWSHelpers.WriteString(msOut, SalouConst.READER_NOT_FOUND);
                             return SalouReturnType.Exception;
                         }
                         await rdr.Continue(msOut, pageSize);
@@ -644,7 +644,7 @@ namespace SalouWS4Sql.Server
                         if (rdr == null)
                         {
                             Salou.LoggerFkt(LogLevel.Trace, () => $"WSR {_WSRID}: Reader not found");
-                            StaticWSHelpers.WriteString(msOut, "Reader not found");
+                            StaticWSHelpers.WriteString(msOut, SalouConst.READER_NOT_FOUND);
                             return SalouReturnType.Exception;
                         }
                         if (await rdr.NextResult(msOut, pageSize))

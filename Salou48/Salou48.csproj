@@ -196,6 +196,9 @@
     <Compile Include="..\Salou\Salou.cs">
       <Link>Salou.cs</Link>
     </Compile>
+    <Compile Include="..\Salou\SalouConst.cs">
+      <Link>SalouConst.cs</Link>
+    </Compile>
     <Compile Include="..\Salou\SalouRequestType.cs">
       <Link>SalouRequestType.cs</Link>
     </Compile>
