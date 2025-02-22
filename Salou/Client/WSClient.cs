@@ -128,10 +128,15 @@ namespace SalouWS4Sql.Client
         /// <param name="act"></param>
         /// <returns></returns>
         private void DOASyncSerialized(Func<Task> act)
-        {            
+        {
+            bool release = true;
             try
             {
-                _semaphore.Wait(Salou.ClientSemaphoreWait);
+                if (!_semaphore.Wait(Salou.ClientSemaphoreWait))
+                {
+                    release = false;
+                    Salou.LoggerFkt(LogLevel.Warning, () => $"ClientSemaphoreWait timeout in {Salou.ClientSemaphoreWait}");
+                }
 
                 Salou48.Helpers.AsyncHelper.RunSync(act);
                 //act().Wait();
@@ -142,14 +147,20 @@ namespace SalouWS4Sql.Client
             }
             finally
             {
-                _semaphore.Release();
+                if(release)
+                    _semaphore.Release();
             }
         }
         private T? DOASyncSerialized<T>(Func<object?,Task<T>> act, CancellationToken ct,object o)
-        {            
+        {
+            bool release = true;
             try
             {
-                _semaphore.Wait(Salou.ClientSemaphoreWait);
+                if (!_semaphore.Wait(Salou.ClientSemaphoreWait))
+                {
+                    release = false;
+                    Salou.LoggerFkt(LogLevel.Warning, () => $"ClientSemaphoreWait timeout in {Salou.ClientSemaphoreWait}");
+                }
 
                 return Salou48.Helpers.AsyncHelper.RunSync<T>(act,o,ct);
                 //act().Wait();
@@ -160,7 +171,8 @@ namespace SalouWS4Sql.Client
             }
             finally
             {
-                _semaphore.Release();
+                if(release)
+                    _semaphore.Release();
             }
             return default;
         }
