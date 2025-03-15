@@ -31,7 +31,7 @@ namespace SalouTest
 
         internal SalouConnection Init(bool noOpen = false)
         {
-            _con = new SalouConnection(new Uri("ws://localhost:5249/ws"), "Test", 120, null);
+            _con = new SalouConnection(new Uri("ws://localhost:5000/ws"), "Test", 120, null);
             if(!noOpen)
                 _con.Open();
 

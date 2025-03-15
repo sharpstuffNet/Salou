@@ -22,7 +22,7 @@ namespace SalouWS4Sql.Client
     /// <summary>
     /// Implements a DbDataReader over the Salou Websocket Service
     /// </summary>
-    internal class SalouDataReader : DbDataReader, IDisposable
+    internal class SalouDataReader : DbDataReader, ISalouDataReader, IDisposable
     {
         /// <summary>
         /// Page Size
@@ -267,6 +267,12 @@ namespace SalouWS4Sql.Client
         public override bool IsClosed => _isClosed;
         /// <inheritdoc />
         public override int RecordsAffected => _data.RecordsAffected;
+
+        /// <inheritdoc />
+        public Dictionary<string, int>? ColNames { get => _colNames;}
+        /// <inheritdoc />
+        public Dictionary<string, int>? ColNamesLowerInvariant { get => _colNamesLI; }
+
         /// <inheritdoc />
         public override object this[int ordinal] => _curRow[ordinal];
         /// <inheritdoc />

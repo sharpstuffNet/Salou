@@ -131,6 +131,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\Salou\Client\ISalouDataReader.cs">
+      <Link>ISalouDataReader.cs</Link>
+    </Compile>
     <Compile Include="..\Salou\Client\SalouCommand.cs">
       <SubType>Component</SubType>
       <Link>SalouCommand.cs</Link>

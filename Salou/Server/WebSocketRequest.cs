@@ -405,24 +405,45 @@ namespace SalouWS4Sql.Server
                     {
                         var id = StaticWSHelpers.ReadInt(ref spanIn);
                         var con = _allCons.Get(id);
-                        if (con != null)
+                        if (con != null)  
                         {
-                            try
+                            //Also close a transaction
+                            var tran = _allTrans.Get(id);
+                            if (tran != null)
                             {
-                                //Also close a transaction
-                                var tran = _allTrans.Get(id);
-                                if (tran != null)
-                                {
-                                    _allTrans.Remove(id);
-                                    await tran.RollbackAsync();
-                                    await tran.DisposeAsync();
-                                }
-                            }
-                            catch { }
+                                _allTrans.Remove(id);
+                                _allCons.Remove(id);
 
-                            _allCons.Remove(id);
-                            await con.CloseAsync();
-                            await con.DisposeAsync();
+                                if (_wss.CloseCon == null)
+                                {
+                                    try
+                                    {
+                                        if (tran != null)
+                                        {
+                                            await tran.RollbackAsync();
+                                            await tran.DisposeAsync();
+                                        }
+                                    }
+                                    catch { }
+
+                                    await con.CloseAsync();
+                                    await con.DisposeAsync();
+                                }
+                                else
+                                    await _wss.CloseCon(con, tran);                               
+                            }
+                            else
+                            {
+                                _allCons.Remove(id);
+
+                                if (_wss.CloseCon == null)
+                                {
+                                    await con.CloseAsync();
+                                    await con.DisposeAsync();
+                                }
+                                else
+                                    await _wss.CloseCon(con, null);
+                            }
                             return SalouReturnType.Nothing;
                         }
                         Salou.LoggerFkt(LogLevel.Trace, () => $"WSR {_WSRID}: Connection is null");

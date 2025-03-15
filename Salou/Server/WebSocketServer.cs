@@ -31,9 +31,17 @@ namespace SalouWS4Sql.Server
         public delegate Task<DbConnection> CreateOpenConDelegate(string? constr, string? dbName, HttpContext ctx);
 
         /// <summary>
+        /// Defines a delegate for closing a database connection asynchronously.
+        /// </summary>
+        /// <param name="con">Represents the database connection that needs to be closed.</param>
+        /// <param name="tran">Represents an optional transaction associated with the connection.</param>
+        /// <returns>Returns a Task that represents the asynchronous operation.</returns>
+        public delegate Task CloseConDelegate(DbConnection con, DbTransaction? tran);
+
+        /// <summary>
         /// all Websocket Requests
         /// </summary>
-        SimpleConcurrentList<WebSocketRequest> _allWSS = new ();
+        SimpleConcurrentList<WebSocketRequest> _allWSS = new();
         /// <summary>
         /// cleanUp Timer
         /// </summary>
@@ -43,18 +51,25 @@ namespace SalouWS4Sql.Server
         /// </summary>
         public ILogger? Logger { get; private set; }
         /// <summary>
-        /// CreateOpenCon callback
+        /// CreateOpenCon callback. It can be set privately and accessed publicly.
         /// </summary>
         public CreateOpenConDelegate CreateOpenCon { get; private set; }
+        /// <summary>
+        /// Represents an optional delegate for closing a connection. It can be set privately and accessed publicly.
+        /// </summary>
+        public CloseConDelegate? CloseCon { get; private set; }
+
         /// <summary>
         /// constructor for WebSocketServer
         /// </summary>
         /// <param name="logger">Logger</param>
         /// <param name="configuration">Configuration</param>
-        /// <param name="createOpenCon">CreateOpenConDelegate</param>
-        public WebSocketServer(ILogger? logger, IConfiguration? configuration, CreateOpenConDelegate createOpenCon)
+        /// <param name="createOpenCon">CreateOpenCon Function</param>
+        /// <param name="closeCon">CloseCon Function</param>
+        public WebSocketServer(ILogger? logger, IConfiguration? configuration, CreateOpenConDelegate createOpenCon, CloseConDelegate? closeCon = null)
         {
             CreateOpenCon = createOpenCon;
+            CloseCon = closeCon;
             Logger = logger;
             Salou.Logger = logger;
 
@@ -69,7 +84,7 @@ namespace SalouWS4Sql.Server
         /// </summary>
         /// <param name="state">unused</param>
         private void TiCb(object? state)
-        {            
+        {
 
             WebSocketRequest[] lst;
             lock (_allWSS)
@@ -97,9 +112,11 @@ namespace SalouWS4Sql.Server
         {
             Salou.LoggerFkt(LogLevel.Information, () => "AcceptWebSocketRequest");
 
-            var wsr = new WebSocketRequest(this, ws,ctx);
+            var wsr = new WebSocketRequest(this, ws, ctx);
             _allWSS.Add(wsr);
             await wsr.Recive();
         }
+
+
     }
 }
