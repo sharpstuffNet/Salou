@@ -17,12 +17,12 @@ namespace SalouWS4Sql.Client
         /// Gets the dictionary of column names, mapping each name to the Index. The
         /// dictionary can be null.
         /// </summary>
-        public Dictionary<string, int>? ColNames { get; }
+        public Lookup<string, int>? ColNames { get; }
         /// <summary>
         /// Gets the dictionary of column names in lower invariant case, mapping each name to the Index. The
         /// dictionary can be null.
         /// </summary>
-        public Dictionary<string, int>? ColNamesLowerInvariant { get; }
+        public Lookup<string, int>? ColNamesLowerInvariant { get; }
         /// <summary>
         /// Represents the number of items to be displayed on a single page. It is commonly used for pagination in data
         /// display.

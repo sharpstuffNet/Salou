@@ -59,11 +59,11 @@ namespace SalouWS4Sql.Client
         /// <summary>
         /// Column Names
         /// </summary>
-        Dictionary<string, int>? _colNames;
+        Lookup<string, int>? _colNames;
         /// <summary>
         /// Infariant Column Names for Comparesion
         /// </summary>
-        Dictionary<string, int>? _colNamesLI;
+        Lookup<string, int>? _colNamesLI;
         /// <summary>
         /// No More Data to get
         /// </summary>
@@ -159,19 +159,53 @@ namespace SalouWS4Sql.Client
 
                 var nCol = _schemaColumns["ColumnName"];
                 var iCol = _schemaColumns["ColumnOrdinal"];
-                _colNames = new Dictionary<string, int>();
-                foreach (DataRow r in _data.SchemaTable.Rows)
-                    _colNames.Add(((string)r[nCol]), (int)r[iCol]);
+                _colNames = (Lookup<string, int>)_data.SchemaTable.Rows
+                    .Cast<DataRow>()
+                    .Select(r => new { Name = (string)r[nCol], Ordinal = (int)r[iCol] })
+                    .ToLookup(x => x.Name, x => x.Ordinal);
+
+                if (_colNames != null && Salou.ReaderCompareLowerInvariant)
+                    _colNamesLI = (Lookup<string, int>)_data.SchemaTable.Rows
+                    .Cast<DataRow>()
+                    .Select(r => new { Name = (string)r[nCol], Ordinal = (int)r[iCol] })
+                    .ToLookup(x => x.Name.ToLowerInvariant(), x => x.Ordinal);
             }
             else if (_data.UseSchema == UseSchema.NamesOnly)
             {
-                _colNames = new Dictionary<string, int>();
-                for (int i = 0; i < _data.ColNames!.Length; i++)
-                    _colNames.Add(_data.ColNames[i], i);
+                _colNames = (Lookup<string, int>)_data.ColNames!
+                    .Select((name, index) => new { name, index })
+                    .ToLookup(x => x.name, x => x.index);
+
+                if (_colNames != null && Salou.ReaderCompareLowerInvariant)
+                    _colNamesLI = (Lookup<string, int>)_data.ColNames!
+                    .Select((name, index) => new { name = name.ToLowerInvariant(), index })
+                    .ToLookup(x => x.name, x => x.index);
             }
 
-            if (_colNames != null && Salou.ReaderCompareLowerInvariant)
-                _colNamesLI = _colNames.ToDictionary(x => x.Key.ToLowerInvariant(), x => x.Value);
+            ////Whole Schema?
+            //if (_data.UseSchema == UseSchema.Full)
+            //{
+            //    _schemaColumns = new Lookup<string, int>();
+
+            //    for (int i = 0; i < _data.SchemaTable!.Columns.Count; i++)
+            //        _schemaColumns.Add(_data.SchemaTable.Columns[i].ColumnName, i);
+
+            //    var nCol = _schemaColumns["ColumnName"].First();
+            //    var iCol = _schemaColumns["ColumnOrdinal"].First();
+            //    _colNames = (Lookup<string, int>)(from DataRow r in _data.SchemaTable.Rows select ((string)r[nCol], (int)r[iCol])).ToLookup(k => k.Item1, v => v.Item2);
+            //}
+            //else if (_data.UseSchema == UseSchema.NamesOnly)
+            //{
+            //    _colNames = (Lookup<string, int>)(_data.ColNames!
+            //.Select((name, index) => new { name, index })
+            //.ToLookup(x => x.name, x => x.index);
+            //    _colNames = new Lookup<string, int>();
+            //    for (int i = 0; i < _data.ColNames!.Length; i++)
+            //        _colNames.Add(_data.ColNames[i], i);
+            //}
+
+            //if (_colNames != null && Salou.ReaderCompareLowerInvariant)
+            //    _colNamesLI = _colNames.ToDictionary(x => x.Key.ToLowerInvariant(), x => x.Value);
 
             //Need Data?
             _hasRows = _data.HasRows;
@@ -269,15 +303,15 @@ namespace SalouWS4Sql.Client
         public override int RecordsAffected => _data.RecordsAffected;
 
         /// <inheritdoc />
-        public Dictionary<string, int>? ColNames { get => _colNames;}
+        public Lookup<string, int>? ColNames { get => _colNames; }
         /// <inheritdoc />
-        public Dictionary<string, int>? ColNamesLowerInvariant { get => _colNamesLI; }
+        public Lookup<string, int>? ColNamesLowerInvariant { get => _colNamesLI; }
 
         /// <inheritdoc />
         public override object this[int ordinal] => _curRow[ordinal];
         /// <inheritdoc />
         public override object this[string name] => _colNames == null ? throw new SalouException("No Column Names or Schema Loaded")
-            : Salou.ReaderCompareLowerInvariant ? _curRow[_colNamesLI[name.ToLowerInvariant()]] : _curRow[_colNames[name]];
+            : Salou.ReaderCompareLowerInvariant ? _curRow[_colNamesLI[name.ToLowerInvariant()].First()] : _curRow[_colNames[name].First()];
         /// <inheritdoc />
         public override DataTable? GetSchemaTable() => _data.SchemaTable == null ? throw new SalouException("No Schema Loaded") : _data.SchemaTable;
 #pragma warning restore CS8602 // Possible null reference return.
@@ -471,10 +505,24 @@ namespace SalouWS4Sql.Client
         /// <inheritdoc />
         public override string GetDataTypeName(int ordinal) => _data.SchemaTable == null ? throw new SalouException("No Schema Loaded") : (string)_data.SchemaTable.Rows[ordinal][_schemaColumns["DataType"]];
         /// <inheritdoc />
-        public override string GetName(int ordinal) => _colNames == null ? throw new SalouException("No Column Names or Schema Loaded") : _colNames.FirstOrDefault(x => x.Value == ordinal).Key;
+        public override string GetName(int ordinal)
+        {
+            if (_colNames == null)
+                throw new SalouException("No Column Names or Schema Loaded");
+
+            foreach (var item in _colNames)
+            {
+                foreach (var item1 in item)
+                {
+                    if (ordinal == item1)
+                        return item.Key;
+                }
+            }
+            return null;
+        }
         /// <inheritdoc />
         public override int GetOrdinal(string name) => _colNames == null ? throw new SalouException("No Column Names or Schema Loaded")
-            : Salou.ReaderCompareLowerInvariant ? _colNamesLI[name.ToLowerInvariant()] : _colNames[name];
+            : Salou.ReaderCompareLowerInvariant ? _colNamesLI[name.ToLowerInvariant()].First() : _colNames[name].First();
         /// <inheritdoc />
         public override string GetString(int ordinal) => (string)_curRow[ordinal];
         /// <inheritdoc />

@@ -101,6 +101,35 @@ namespace SalouTest
         }
 
         /// <summary>
+        /// Test Reader incl Pageing
+        /// </summary>
+        [TestMethod]
+        public void DoubleColumns()
+        {
+            Assert.IsNotNull(_con);
+            var cmd = (SalouCommand)_con.CreateCommand();
+            cmd.Salou_ReaderPageSize = 2;
+            cmd.CommandText = "select *,prod_name from dbo.Products";
+
+            var rdr = cmd.ExecuteReader();
+            Assert.IsNotNull(rdr);
+            Assert.IsNotNull(rdr.GetSchemaTable());
+            Assert.IsTrue(rdr.GetName(1) == "vend_id");
+            Assert.IsTrue(rdr.HasRows);
+            int i = 0;
+            string? s = "";
+
+            while (rdr.Read())
+            {
+                i++;
+                Assert.AreEqual(6, rdr.FieldCount);
+                s = rdr["prod_name"].ToString();
+                Assert.IsNotNull(s);
+            }
+            Assert.AreEqual(9, i);
+        }
+
+        /// <summary>
         /// Test Reader multi resut sets
         /// </summary>
         [TestMethod]
